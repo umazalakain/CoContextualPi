@@ -19,27 +19,10 @@ private
 
 
 
-Eq : ℕ → Set
-Eq n = Type n × Type n
-
-
 fresh : Ctx n n
 fresh {n = zero} = []
 fresh {n = suc n} = ′ zero ∷ Vec.map (|> suc <|_) fresh
 
-
-[_]⇓ : AList m l → Ctx n m → Ctx n l
-[ σ ]⇓ = Vec.map (sub σ <|_)
-
-
-amgus : Vec (Eq m) n → AList m l → Maybe (Σ ℕ (AList m))
-amgus [] acc = just (_ , acc)
-amgus ((s , t) ∷ eqs) acc = do _ , acc' ← amgu s t acc
-                               amgus eqs acc'
-
-
-unify : Vec (Eq m) n → Maybe (Σ ℕ (AList m))
-unify eqs = amgus eqs []
 
 
 unify-apply : Vec (Eq m) l → Ctx n m → Maybe (Σ ℕ (Ctx n))

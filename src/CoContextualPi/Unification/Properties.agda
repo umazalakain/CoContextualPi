@@ -4,12 +4,14 @@ open import Relation.Nullary.Negation using (contradiction)
 
 open import Data.Maybe as Maybe using (Maybe; just; nothing)
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
-open import Data.Nat as ℕ using (ℕ; zero; suc)
-open import Data.Fin as Fin using (Fin; zero; suc)
+open import Data.Nat.Base as ℕ using (ℕ; zero; suc)
+open import Data.Fin.Base as Fin using (Fin; zero; suc)
+open import Data.Vec.Base as Vec using (Vec; []; _∷_)
 
 import Data.Fin.Properties as Finₚ
 import Data.Maybe.Properties as Maybeₚ
 import Data.Product.Properties as Productₚ
+import Data.Vec.Properties as Vecₚ
 
 open import CoContextualPi.Types
 open import CoContextualPi.Unification
@@ -19,6 +21,13 @@ module CoContextualPi.Unification.Properties where
 private
   variable
     n m l k : ℕ
+
+
+#-injective : {s t : Type m} → # s ≡ # t → s ≡ t
+#-injective refl = refl
+
+<,>-injective : {lx rx ly ry : Type m} → < lx , rx > ≡ < ly , ry > → lx ≡ ly × rx ≡ ry
+<,>-injective refl = refl , refl
 
 <|-id : (t : Type n) → ′_ <| t ≡ t
 <|-id (′ x) = refl
@@ -32,11 +41,11 @@ private
 <|-assoc f g (# t) = cong #_ (<|-assoc f g t)
 <|-assoc f g < t₁ , t₂ > = cong₂ <_,_> (<|-assoc f g t₁) (<|-assoc f g t₂)
 
-<|-≗ : {f g : Fin n → Type m} (t : Type n) → f ≗ g → f <| t ≡ g <| t
-<|-≗ (′ x) eq = eq x
-<|-≗ top eq = refl
-<|-≗ (# t) eq = cong #_ (<|-≗ t eq)
-<|-≗ < l , r > eq = cong₂ <_,_> (<|-≗ l eq) (<|-≗ r eq)
+<|-≗ : {f g : Fin n → Type m} → f ≗ g → (t : Type n) → f <| t ≡ g <| t
+<|-≗ eq (′ x) = eq x
+<|-≗ eq top = refl
+<|-≗ eq (# t) = cong #_ (<|-≗ eq t)
+<|-≗ eq < l , r > = cong₂ <_,_> (<|-≗ eq l) (<|-≗ eq r)
 
 thin-inv : (x : Fin (suc n)) (y z : Fin n) → thin x y ≡ thin x z → y ≡ z
 thin-inv zero y z eq = Finₚ.suc-injective eq
@@ -95,7 +104,7 @@ sub-++ : (xs : AList m n) (ys : AList l m) → sub (xs ++ ys) ≗ sub xs <> sub 
 sub-++ xs [] t = refl
 sub-++ xs (ys -, (i ↦ t')) t
   rewrite sym (<|-assoc (sub xs) (sub ys) (Maybe.maybe ′_ t' (thick i t)))
-  = <|-≗ (Maybe.maybe ′_ t' (thick i t)) (sub-++ xs ys)
+  = <|-≗ (sub-++ xs ys) (Maybe.maybe ′_ t' (thick i t))
 
 ++-id : (xs : AList m n) → [] ++ xs ≡ xs
 ++-id [] = refl
@@ -104,6 +113,13 @@ sub-++ xs (ys -, (i ↦ t')) t
 ++-assoc : (xs : AList m n) (ys : AList l m) (zs : AList k l) → xs ++ (ys ++ zs) ≡ (xs ++ ys) ++ zs
 ++-assoc xs ys [] = refl
 ++-assoc xs ys (zs -, x) = cong (_-, x) (++-assoc xs ys zs)
+
+-,-injective : {xs ys : AList m n} {x : Subst m} → xs -, x ≡ ys -, x → xs ≡ ys
+-,-injective refl = refl
+
+++-cancel : (xs ys : AList m n) (zs : AList l m) → xs ++ zs ≡ ys ++ zs → xs ≡ ys
+++-cancel xs ys [] eq = eq
+++-cancel xs ys (zs -, z) eq = ++-cancel xs ys zs (-,-injective eq)
 
 flexFlex-unifies : (x y : Fin m) (σ : AList m n) → flexFlex x y ≡ (n , σ) → sub σ x ≡ sub σ y
 flexFlex-unifies {suc m} x y σ eq with thick x y | inspect (thick x) y
@@ -118,11 +134,11 @@ flexRigid-unifies {suc m} x t eq with check x t | inspect (check x) t
 flexRigid-unifies {suc m} x t refl | just t' | [ eq ]
   rewrite thick-nothing x | check-thin x t t' eq = begin
     (′_ <| t')
-      ≡⟨ <|-≗ t' (λ y → cong (Maybe.maybe ′_ t') (sym (thick-thin x y))) ⟩
+      ≡⟨ <|-≗ (λ y → cong (Maybe.maybe ′_ t') (sym (thick-thin x y))) t' ⟩
     (Maybe.maybe ′_ t' ∘ thick x ∘ thin x) <| t'
       ≡⟨ <|-assoc (Maybe.maybe ′_ t' ∘ thick x) (|> (thin x)) t' ⟩
     (Maybe.maybe ′_ t' ∘ thick x) <| (|> (thin x) <| t')
-      ≡⟨ <|-≗ (|> (thin x) <| t') (λ t'' → sym (<|-id _)) ⟩
+      ≡⟨ <|-≗ (λ t'' → sym (<|-id _)) (|> (thin x) <| t') ⟩
     ((′_ <|_) ∘ Maybe.maybe ′_ t' ∘ thick x) <| (|> (thin x) <| t')
       ∎
     where open ≡.≡-Reasoning
@@ -179,7 +195,7 @@ amgu-unifies < lx , rx > < ly , ry > acc σ eq with amgu lx ly acc | inspect (am
 ... | rfound , refl = cong₂ <_,_>
   (begin
      (sub (rfound ++ (lfound ++ acc)) <| lx)
-   ≡⟨ <|-≗ lx (sub-++ rfound (lfound ++ acc)) ⟩
+   ≡⟨ <|-≗ (sub-++ rfound (lfound ++ acc)) lx ⟩
      (sub rfound <> sub (lfound ++ acc)) <| lx
    ≡⟨ <|-assoc (sub rfound) (sub (lfound ++ acc)) lx ⟩
      sub rfound <| (sub (lfound ++ acc) <| lx)
@@ -187,7 +203,7 @@ amgu-unifies < lx , rx > < ly , ry > acc σ eq with amgu lx ly acc | inspect (am
      sub rfound <| (sub (lfound ++ acc) <| ly)
    ≡⟨ sym (<|-assoc (sub rfound) (sub (lfound ++ acc)) ly) ⟩
      (sub rfound <> sub (lfound ++ acc)) <| ly
-   ≡⟨ <|-≗ ly (sym ∘ (sub-++ rfound (lfound ++ acc))) ⟩
+   ≡⟨ <|-≗ (sym ∘ (sub-++ rfound (lfound ++ acc))) ly ⟩
      sub (rfound ++ (lfound ++ acc)) <| ly
    ∎)
    (amgu-unifies rx ry (lfound ++ acc) (rfound ++ (lfound ++ acc)) eq)
@@ -210,7 +226,119 @@ amgu-unifies s t (acc -, (z ↦ r)) .((found ++ acc) -, (z ↦ r)) eq | found , 
   | amgu-step acc z r s t
   = amgu-unifies (r for z <| s) (r for z <| t) acc (found ++ acc) (Maybeₚ.map-injective (λ {refl → refl}) eq)
 
+{-
+flexFlex-complete : (x y : Fin m) {σ : AList m l} (g : Fin m → Type k)
+                  → flexFlex x y ≡ (l , σ)
+                  → g x ≡ g y
+                  → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
+flexFlex-complete {suc m} x y g flexeq geq with thick x y
+flexFlex-complete {suc m} x y g refl geq | nothing = g , (λ _ → refl)
+flexFlex-complete {suc m} x y g refl geq | just x' = {!g z!} , λ z → {!<|-id!}
+
+flexRigid-complete : (x : Fin m) (t : Type m) {σ : AList m l} (g : Fin m → Type k)
+                   → flexRigid x t ≡ just (l , σ)
+                   → g x ≡ g <| t
+                   → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
+flexRigid-complete {suc m} x t g flexeq geq with check x t
+flexRigid-complete {suc m} x t g refl geq | just t' = {!!} , λ z → {!!}
 
 
-mgu-unifies : (s t : Type m) (σ : AList m n) → mgu s t ≡ just (n , σ) → sub σ <| s ≡ sub σ <| t
-mgu-unifies s t σ eq = amgu-unifies s t [] σ eq
+amgu-complete : (s t : Type m) (acc : AList m n) {σ : AList m l} (g : Fin m → Type k)
+              → amgu s t acc ≡ just (l , σ)
+              → g <| s ≡ g <| t
+              → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
+amgu-complete top top acc g refl geq = {!!} , (λ z → {!!})
+amgu-complete (# s) (# t) acc g amgueq geq = amgu-complete s t acc g amgueq (#-injective geq)
+amgu-complete < lx , rx > < ly , ry > acc g amgueq geq
+  with just (_ , lσ) ← amgu lx ly acc | [ leq ] ← inspect (amgu lx ly) acc
+  with just (_ , rσ) ← amgu rx ry lσ | [ req ] ← inspect (amgu rx ry) lσ
+  with refl ← amgueq
+  with rh , rheq ← amgu-complete rx ry lσ g req (proj₂ (<,>-injective geq))
+  = rh , rheq
+amgu-complete (′ x) (′ y) [] g amgueq geq = flexFlex-complete x y g (Maybeₚ.just-injective amgueq) geq
+amgu-complete (′ x) top [] g amgueq geq = flexRigid-complete x top g amgueq geq
+amgu-complete (′ x) (# t) [] g amgueq geq = flexRigid-complete x (# t) g amgueq geq
+amgu-complete (′ x) < l , r > [] g amgueq geq = flexRigid-complete x < l , r > g amgueq geq
+amgu-complete top (′ y) [] g amgueq geq = flexRigid-complete y top g amgueq (sym geq)
+amgu-complete (# s) (′ y) [] g amgueq geq = flexRigid-complete y (# s) g amgueq (sym geq)
+amgu-complete < l , r > (′ y) [] g amgueq geq = flexRigid-complete y < l , r > g amgueq (sym geq)
+amgu-complete s t (acc -, z ↦ r) g amgueq geq rewrite amgu-step acc z r s t 
+  with h , heq ← amgu-complete (r for z <| s) (r for z <| t) acc (g ∘ thin z) {!amgueq!} {!geq!}
+  = {!h!} , (λ w → {!thick z w!})
+  -}
+
+
+amgu-complete' : (s t : Type m) (acc : AList m n) (vacc : AList n k) (found : AList k l)
+               → amgu s t (vacc ++ acc) ≡ just (l , found ++ (vacc ++ acc))
+               → amgu (sub acc <| s) (sub acc <| t) vacc ≡ just (l , found ++ vacc)
+amgu-complete' s t [] vacc found eq rewrite <|-id s | <|-id t = eq
+amgu-complete' s t (acc -, z ↦ r) vacc found eq rewrite amgu-step (vacc ++ acc) z r s t
+  with eqq ← amgu-complete' (r for z <| s) (r for z <| t) acc vacc found (Maybeₚ.map-injective (λ {refl → refl}) eq)
+  rewrite <|-assoc (sub acc) (r for z) s
+  rewrite <|-assoc (sub acc) (r for z) t
+  = eqq
+
+
+amgus-acc : (xs ys : Vec (Type m) n) (acc : AList m k) (σ : AList m l)
+          → amgus xs ys acc ≡ just (l , σ)
+          → ∃[ found ] (σ ≡ found ++ acc)
+amgus-acc [] [] acc .acc refl = [] , sym (++-id _)
+amgus-acc (x ∷ xs) (y ∷ ys) acc σ eq with amgu x y acc | inspect (amgu x y) acc
+... | just (_ , stσ) | [ steq ] with amgu-acc x y acc stσ steq
+... | stfound , refl with amgus-acc xs ys stσ σ eq
+... | xsfound , refl = _ , ++-assoc xsfound stfound acc
+
+amgu-complete'' : ∀ {len} (xs ys : Vec (Type m) len) (acc : AList m n) (vacc : AList n k) (found : AList k l)
+                → amgus xs ys (vacc ++ acc) ≡ just (l , (found ++ vacc) ++ acc)
+                → amgus (Vec.map (sub acc <|_) xs) (Vec.map (sub acc <|_) ys) vacc ≡ just (l , (found ++ vacc))
+amgu-complete'' [] [] acc vacc found eq = {!!}
+amgu-complete'' (x ∷ xs) (y ∷ ys) acc vacc found eq
+  with just (_ , xyσ) ← amgu x y (vacc ++ acc) | [ xyeq ] ← inspect (amgu x y) (vacc ++ acc)
+  with just (_ , xsysσ) ← amgus xs ys xyσ | [ xsyseq ] ← inspect (amgus xs ys) xyσ
+  with xyfound , refl ← amgu-acc x y (vacc ++ acc) xyσ xyeq
+  with xsysfound , refl ← amgus-acc xs ys xyσ xsysσ xsyseq
+  rewrite amgu-complete' x y acc vacc xyfound xyeq
+  rewrite amgu-complete'' xs ys acc (xyfound ++ vacc) xsysfound {!xsyseq!}
+  = {!eq!}
+  where open ≡.≡-Reasoning
+
+
+
+amgu-complete''' : ∀ {len} (xs ys : Vec (Type m) len) (acc : AList m n) (found : AList n l)
+                 → amgus xs ys acc ≡ just (l , found ++ acc)
+                 → amgus (Vec.map (sub acc <|_) xs) (Vec.map (sub acc <|_) ys) [] ≡ just (l , found)
+amgu-complete''' xs ys acc found eq rewrite ++-id acc = amgu-complete'' xs ys acc [] found
+                                                        (trans (cong (amgus xs ys) (++-id _)) eq)
+
+amgus-unifies : (xs ys : Vec (Type m) k) (acc : AList m l) (σ : AList m n)
+              → amgus xs ys acc ≡ just (n , σ) → [ σ ]⇓ xs ≡ [ σ ]⇓ ys
+amgus-unifies [] [] acc σ eq = refl
+amgus-unifies (x ∷ xs) (y ∷ ys) acc σ eq
+  with just (_ , xyσ) ← amgu x y acc | [ xyeq ] ← inspect (amgu x y) acc
+  with just (_ , xsysσ) ← amgus xs ys xyσ | [ xsyseq ] ← inspect (amgus xs ys) xyσ
+  with xyfound , refl ← amgu-acc x y acc xyσ xyeq
+  with xsysfound , refl ← amgus-acc xs ys xyσ xsysσ xsyseq
+  with refl ← eq
+  = begin
+  (sub (xsysfound ++ (xyfound ++ acc)) <| x) ∷ Vec.map (_<|_ (sub (xsysfound ++ (xyfound ++ acc)))) xs
+    ≡⟨ cong₂ _∷_ (<|-≗ (sub-++ xsysfound xyσ) x) (Vecₚ.map-cong (<|-≗ (sub-++ xsysfound (xyfound ++ acc))) xs) ⟩
+  ((sub xsysfound <> sub (xyfound ++ acc)) <| x) ∷ Vec.map (_<|_ (sub xsysfound <> sub (xyfound ++ acc))) xs
+    ≡⟨ cong₂ _∷_ (<|-assoc (sub xsysfound) (sub (xyfound ++ acc)) x) (Vecₚ.map-cong (<|-assoc (sub xsysfound) (sub (xyfound ++ acc))) xs) ⟩
+  (sub xsysfound <| (sub (xyfound ++ acc) <| x)) ∷ Vec.map (((sub xsysfound) <|_) ∘ ((sub (xyfound ++ acc)) <|_)) xs
+    ≡⟨ cong₂ _∷_ refl (Vecₚ.map-∘ ((sub xsysfound) <|_) (sub (xyfound ++ acc) <|_) xs) ⟩
+  (sub xsysfound <| (sub xyσ <| x)) ∷ Vec.map (_<|_ (sub xsysfound)) (Vec.map (_<|_ (sub (xyfound ++ acc))) xs)
+    ≡⟨ cong₂ _∷_ (cong (sub xsysfound <|_) (amgu-unifies x y acc (xyfound ++ acc) xyeq)) (amgus-unifies (Vec.map (sub (xyfound ++ acc) <|_) xs) (Vec.map (sub (xyfound ++ acc) <|_) ys) [] xsysfound (amgu-complete''' xs ys xyσ xsysfound xsyseq)) ⟩
+  (sub xsysfound <| (sub xyσ <| y)) ∷ Vec.map (_<|_ (sub xsysfound)) (Vec.map (_<|_ (sub (xyfound ++ acc))) ys)
+    ≡˘⟨ cong₂ _∷_ refl (Vecₚ.map-∘ ((sub xsysfound) <|_) (sub xyσ <|_) ys) ⟩
+  (sub xsysfound <| (sub xyσ <| y)) ∷ Vec.map (((sub xsysfound) <|_) ∘ ((sub xyσ) <|_)) ys
+    ≡˘⟨ cong₂ _∷_ (<|-assoc (sub xsysfound) (sub xyσ) y) (Vecₚ.map-cong (<|-assoc (sub xsysfound) (sub xyσ)) ys) ⟩
+  ((sub xsysfound <> sub xyσ) <| y) ∷ Vec.map (_<|_ (sub xsysfound <> sub xyσ)) ys
+    ≡˘⟨ cong₂ _∷_ (<|-≗ (sub-++ xsysfound xyσ) y) (Vecₚ.map-cong (<|-≗ (sub-++ xsysfound xyσ)) ys) ⟩
+  (sub (xsysfound ++ xyσ) <| y) ∷ Vec.map (_<|_ (sub (xsysfound ++ xyσ))) ys
+    ∎
+  where open ≡.≡-Reasoning
+
+
+unify-unifies : (xs ys : Vec (Type m) k) {σ : AList m n}
+              → unify xs ys ≡ just (n , σ) → [ σ ]⇓ xs ≡ [ σ ]⇓ ys
+unify-unifies xs ys eq = amgus-unifies xs ys [] _ eq

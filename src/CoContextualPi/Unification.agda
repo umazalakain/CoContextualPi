@@ -1,9 +1,10 @@
 open import Function using (_∘_)
 
-open import Data.Maybe as Maybe using (Maybe; just; nothing)
+open import Data.Maybe as Maybe using (Maybe; just; nothing; _>>=_)
 open import Data.Product as Product using (Σ; _×_; _,_; proj₁; proj₂)
-open import Data.Nat as ℕ using (ℕ; zero; suc)
-open import Data.Fin as Fin using (Fin; zero; suc)
+open import Data.Nat.Base as ℕ using (ℕ; zero; suc)
+open import Data.Fin.Base as Fin using (Fin; zero; suc)
+open import Data.Vec.Base as Vec using (Vec; []; _∷_)
 
 
 open import CoContextualPi.Types
@@ -13,7 +14,7 @@ module CoContextualPi.Unification where
 
 private
   variable
-    n m : ℕ
+    n m l : ℕ
 
 
 -- Occurs check, lowers the term if the variable is not present
@@ -60,6 +61,16 @@ amgu s t (acc -, z ↦ r) = Maybe.map (Product.map₂ (_-, (z ↦ r)))
                                     (amgu (r for z <| s) (r for z <| t) acc)
 
 
--- Unification
-mgu : Type m → Type m → Maybe(Σ ℕ (AList m))
-mgu s t = amgu s t []
+
+-- Lift everything to typing contexts
+
+[_]⇓ : AList m l → Vec (Type m) n → Vec (Type l) n
+[ σ ]⇓ = Vec.map (sub σ <|_)
+
+amgus : Vec (Type m) n → Vec (Type m) n → AList m l → Maybe (Σ ℕ (AList m))
+amgus [] [] acc = just (_ , acc)
+amgus (x ∷ xs) (y ∷ ys) acc = do _ , acc' ← amgu x y acc
+                                 amgus xs ys acc'
+
+unify : Vec (Type m) n → Vec (Type m) n → Maybe (Σ ℕ (AList m))
+unify xs ys = amgus xs ys []
