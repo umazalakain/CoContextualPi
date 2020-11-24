@@ -64,8 +64,8 @@ amgu s t (acc -, z ↦ r) = Maybe.map (Product.map₂ (_-, (z ↦ r)))
 
 -- Lift everything to typing contexts
 
-[_]⇓ : AList m l → Vec (Type m) n → Vec (Type l) n
-[ σ ]⇓ = Vec.map (sub σ <|_)
+[_]⇓ : (Fin m → Type l) → Vec (Type m) n → Vec (Type l) n
+[ σ ]⇓ = Vec.map (σ <|_)
 
 amgus : Vec (Type m) n → Vec (Type m) n → AList m l → Maybe (Σ ℕ (AList m))
 amgus [] [] acc = just (_ , acc)

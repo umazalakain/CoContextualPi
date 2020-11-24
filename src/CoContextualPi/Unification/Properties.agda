@@ -1,5 +1,6 @@
 open import Function using (_∘_)
 open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; _≢_; trans; cong; cong₂; sym; inspect; [_])
+open import Relation.Binary.HeterogeneousEquality as ≅ using (_≅_)
 open import Relation.Nullary.Negation using (contradiction)
 
 open import Data.Maybe as Maybe using (Maybe; just; nothing)
@@ -114,24 +115,36 @@ sub-++ xs (ys -, (i ↦ t')) t
 ++-assoc xs ys [] = refl
 ++-assoc xs ys (zs -, x) = cong (_-, x) (++-assoc xs ys zs)
 
--,-injective : {xs ys : AList m n} {x : Subst m} → xs -, x ≡ ys -, x → xs ≡ ys
--,-injective refl = refl
+data _≣_ : AList m l → AList m k → Set where
+  [] :  _≣_ {m = m} [] []
+  _-,_ : {xs : AList m l} {ys : AList m k} → xs ≣ ys → (x : Subst m) → (xs -, x) ≣ (ys -, x)
 
-++-cancel : (xs ys : AList m n) (zs : AList l m) → xs ++ zs ≡ ys ++ zs → xs ≡ ys
+{-
+Π-to-≣ : {xs : AList m n} {ys : AList m k} → _≡_ {A = Σ ℕ (AList m)} (n , xs) (k , ys) → xs ≣ ys
+Π-to-≣ {xs = []} {[]} eq = []
+Π-to-≣ {xs = xs -, x} {ys -, y} eq = {!!}
+
+-,-injective : {xs : AList m n} {ys : AList m l} {x : Subst m} → xs -, x ≅ ys -, x → xs ≅ ys
+-,-injective {xs = []} {[]} eq = _≅_.refl
+-,-injective {xs = []} {ys -, x} eq = {!eq!}
+-,-injective {xs = xs -, x} {ys} eq = {!!}
+
+++-cancel : (xs : AList m n) (ys : AList m k) (zs : AList l m) → xs ++ zs ≅ ys ++ zs → xs ≅ ys
 ++-cancel xs ys [] eq = eq
-++-cancel xs ys (zs -, z) eq = ++-cancel xs ys zs (-,-injective eq)
+++-cancel xs ys (zs -, z) eq = ++-cancel xs ys zs {!-,-injective eq!}
+-}
 
-flexFlex-unifies : (x y : Fin m) (σ : AList m n) → flexFlex x y ≡ (n , σ) → sub σ x ≡ sub σ y
-flexFlex-unifies {suc m} x y σ eq with thick x y | inspect (thick x) y
-flexFlex-unifies {suc m} x y ._ refl | nothing | [ req ] = cong ′_ (thick-thin-no x y req)
-flexFlex-unifies {suc m} x y ._ refl | just z | [ req ] with thick-thin-yes x y req
-flexFlex-unifies {suc m} x ._ ._ refl | just z | [ req ] | r , refl
+flexFlex-sound : (x y : Fin m) (σ : AList m n) → flexFlex x y ≡ (n , σ) → sub σ x ≡ sub σ y
+flexFlex-sound {suc m} x y σ eq with thick x y | inspect (thick x) y
+flexFlex-sound {suc m} x y ._ refl | nothing | [ req ] = cong ′_ (thick-thin-no x y req)
+flexFlex-sound {suc m} x y ._ refl | just z | [ req ] with thick-thin-yes x y req
+flexFlex-sound {suc m} x ._ ._ refl | just z | [ req ] | r , refl
   rewrite thick-nothing x | thick-thin x r = cong ′_ (sym (Maybeₚ.just-injective req))
 
-flexRigid-unifies : (x : Fin m) (t : Type m) {σ : AList m n}
+flexRigid-sound : (x : Fin m) (t : Type m) {σ : AList m n}
                   → flexRigid x t ≡ just (n , σ) → sub σ x ≡ sub σ <| t
-flexRigid-unifies {suc m} x t eq with check x t | inspect (check x) t
-flexRigid-unifies {suc m} x t refl | just t' | [ eq ]
+flexRigid-sound {suc m} x t eq with check x t | inspect (check x) t
+flexRigid-sound {suc m} x t refl | just t' | [ eq ]
   rewrite thick-nothing x | check-thin x t t' eq = begin
     (′_ <| t')
       ≡⟨ <|-≗ (λ y → cong (Maybe.maybe ′_ t') (sym (thick-thin x y))) t' ⟩
@@ -184,12 +197,12 @@ amgu-acc s t (acc -, z ↦ r) σ eq with amgu s t (acc -, z ↦ r) | amgu-step a
 amgu-acc s t (acc -, (z ↦ r)) σ refl | just ._ | req with amgu (r for z <| s) (r for z <| t) acc | inspect (amgu (r for z <| s) (r for z <| t)) acc
 amgu-acc s t (acc -, (z ↦ r)) ._ refl | just ._ | refl | just x | [ req ] = Product.map₂ (cong (_-, z ↦ r)) (amgu-acc (r for z <| s) (r for z <| t) acc _ req)
 
-amgu-unifies : (s t : Type m) (acc : AList m n) (σ : AList m l)
+amgu-sound : (s t : Type m) (acc : AList m n) (σ : AList m l)
              → amgu s t acc ≡ just (l , σ) → sub σ <| s ≡ sub σ <| t
-amgu-unifies top top acc σ eq = refl
-amgu-unifies (# s) (# t) acc σ eq = cong #_ (amgu-unifies s t acc σ eq)
+amgu-sound top top acc σ eq = refl
+amgu-sound (# s) (# t) acc σ eq = cong #_ (amgu-sound s t acc σ eq)
 -- FIXME: factor out
-amgu-unifies < lx , rx > < ly , ry > acc σ eq with amgu lx ly acc | inspect (amgu lx ly) acc
+amgu-sound < lx , rx > < ly , ry > acc σ eq with amgu lx ly acc | inspect (amgu lx ly) acc
 ... | just (_ , lσ) | [ req ] with amgu-acc lx ly acc lσ req
 ... | lfound , refl with amgu-acc rx ry (lfound ++ acc) σ eq
 ... | rfound , refl = cong₂ <_,_>
@@ -199,73 +212,32 @@ amgu-unifies < lx , rx > < ly , ry > acc σ eq with amgu lx ly acc | inspect (am
      (sub rfound <> sub (lfound ++ acc)) <| lx
    ≡⟨ <|-assoc (sub rfound) (sub (lfound ++ acc)) lx ⟩
      sub rfound <| (sub (lfound ++ acc) <| lx)
-   ≡⟨ cong (sub rfound <|_) (amgu-unifies lx ly acc (lfound ++ acc) req) ⟩
+   ≡⟨ cong (sub rfound <|_) (amgu-sound lx ly acc (lfound ++ acc) req) ⟩
      sub rfound <| (sub (lfound ++ acc) <| ly)
    ≡⟨ sym (<|-assoc (sub rfound) (sub (lfound ++ acc)) ly) ⟩
      (sub rfound <> sub (lfound ++ acc)) <| ly
    ≡⟨ <|-≗ (sym ∘ (sub-++ rfound (lfound ++ acc))) ly ⟩
      sub (rfound ++ (lfound ++ acc)) <| ly
    ∎)
-   (amgu-unifies rx ry (lfound ++ acc) (rfound ++ (lfound ++ acc)) eq)
+   (amgu-sound rx ry (lfound ++ acc) (rfound ++ (lfound ++ acc)) eq)
   where open ≡.≡-Reasoning
 
-amgu-unifies (′ x) (′ y) [] σ eq = flexFlex-unifies x y σ (Maybeₚ.just-injective eq)
+amgu-sound (′ x) (′ y) [] σ eq = flexFlex-sound x y σ (Maybeₚ.just-injective eq)
 
 -- FIXME: factor out
-amgu-unifies (′ x) top [] σ eq = flexRigid-unifies x top eq
-amgu-unifies (′ x) (# t) [] σ eq = flexRigid-unifies x (# t) eq
-amgu-unifies (′ x) < l , r > [] σ eq = flexRigid-unifies x < l , r > eq
-amgu-unifies top (′ y) [] σ eq = sym (flexRigid-unifies y top eq)
-amgu-unifies (# s) (′ y) [] σ eq = sym (flexRigid-unifies y (# s) eq)
-amgu-unifies < l , r > (′ y) [] σ eq = sym (flexRigid-unifies y < l , r > eq)
+amgu-sound (′ x) top [] σ eq = flexRigid-sound x top eq
+amgu-sound (′ x) (# t) [] σ eq = flexRigid-sound x (# t) eq
+amgu-sound (′ x) < l , r > [] σ eq = flexRigid-sound x < l , r > eq
+amgu-sound top (′ y) [] σ eq = sym (flexRigid-sound y top eq)
+amgu-sound (# s) (′ y) [] σ eq = sym (flexRigid-sound y (# s) eq)
+amgu-sound < l , r > (′ y) [] σ eq = sym (flexRigid-sound y < l , r > eq)
 
-amgu-unifies s t (acc -, z ↦ r) σ eq with amgu-acc s t (acc -, z ↦ r) σ eq
-amgu-unifies s t (acc -, (z ↦ r)) .((found ++ acc) -, (z ↦ r)) eq | found , refl
+amgu-sound s t (acc -, z ↦ r) σ eq with amgu-acc s t (acc -, z ↦ r) σ eq
+amgu-sound s t (acc -, (z ↦ r)) .((found ++ acc) -, (z ↦ r)) eq | found , refl
   rewrite <|-assoc (sub (found ++ acc)) (r for z) s
   | <|-assoc (sub (found ++ acc)) (r for z) t
   | amgu-step acc z r s t
-  = amgu-unifies (r for z <| s) (r for z <| t) acc (found ++ acc) (Maybeₚ.map-injective (λ {refl → refl}) eq)
-
-{-
-flexFlex-complete : (x y : Fin m) {σ : AList m l} (g : Fin m → Type k)
-                  → flexFlex x y ≡ (l , σ)
-                  → g x ≡ g y
-                  → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
-flexFlex-complete {suc m} x y g flexeq geq with thick x y
-flexFlex-complete {suc m} x y g refl geq | nothing = g , (λ _ → refl)
-flexFlex-complete {suc m} x y g refl geq | just x' = {!g z!} , λ z → {!<|-id!}
-
-flexRigid-complete : (x : Fin m) (t : Type m) {σ : AList m l} (g : Fin m → Type k)
-                   → flexRigid x t ≡ just (l , σ)
-                   → g x ≡ g <| t
-                   → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
-flexRigid-complete {suc m} x t g flexeq geq with check x t
-flexRigid-complete {suc m} x t g refl geq | just t' = {!!} , λ z → {!!}
-
-
-amgu-complete : (s t : Type m) (acc : AList m n) {σ : AList m l} (g : Fin m → Type k)
-              → amgu s t acc ≡ just (l , σ)
-              → g <| s ≡ g <| t
-              → Σ[ h ∈ (Fin l → Type k) ] g ≗ h <> sub σ
-amgu-complete top top acc g refl geq = {!!} , (λ z → {!!})
-amgu-complete (# s) (# t) acc g amgueq geq = amgu-complete s t acc g amgueq (#-injective geq)
-amgu-complete < lx , rx > < ly , ry > acc g amgueq geq
-  with just (_ , lσ) ← amgu lx ly acc | [ leq ] ← inspect (amgu lx ly) acc
-  with just (_ , rσ) ← amgu rx ry lσ | [ req ] ← inspect (amgu rx ry) lσ
-  with refl ← amgueq
-  with rh , rheq ← amgu-complete rx ry lσ g req (proj₂ (<,>-injective geq))
-  = rh , rheq
-amgu-complete (′ x) (′ y) [] g amgueq geq = flexFlex-complete x y g (Maybeₚ.just-injective amgueq) geq
-amgu-complete (′ x) top [] g amgueq geq = flexRigid-complete x top g amgueq geq
-amgu-complete (′ x) (# t) [] g amgueq geq = flexRigid-complete x (# t) g amgueq geq
-amgu-complete (′ x) < l , r > [] g amgueq geq = flexRigid-complete x < l , r > g amgueq geq
-amgu-complete top (′ y) [] g amgueq geq = flexRigid-complete y top g amgueq (sym geq)
-amgu-complete (# s) (′ y) [] g amgueq geq = flexRigid-complete y (# s) g amgueq (sym geq)
-amgu-complete < l , r > (′ y) [] g amgueq geq = flexRigid-complete y < l , r > g amgueq (sym geq)
-amgu-complete s t (acc -, z ↦ r) g amgueq geq rewrite amgu-step acc z r s t 
-  with h , heq ← amgu-complete (r for z <| s) (r for z <| t) acc (g ∘ thin z) {!amgueq!} {!geq!}
-  = {!h!} , (λ w → {!thick z w!})
-  -}
+  = amgu-sound (r for z <| s) (r for z <| t) acc (found ++ acc) (Maybeₚ.map-injective (λ {refl → refl}) eq)
 
 
 amgu-complete' : (s t : Type m) (acc : AList m n) (vacc : AList n k) (found : AList k l)
@@ -288,18 +260,24 @@ amgus-acc (x ∷ xs) (y ∷ ys) acc σ eq with amgu x y acc | inspect (amgu x y)
 ... | stfound , refl with amgus-acc xs ys stσ σ eq
 ... | xsfound , refl = _ , ++-assoc xsfound stfound acc
 
+eq-subst : (xs : AList m n) (ys : AList m l) → _≡_ {A = Σ ℕ (AList m)} (n , xs) (l , ys) → xs ≅ ys
+eq-subst xs .xs refl = _≅_.refl
+
+postulate TODO : ∀ {a} {A : Set a} → A
+
 amgu-complete'' : ∀ {len} (xs ys : Vec (Type m) len) (acc : AList m n) (vacc : AList n k) (found : AList k l)
                 → amgus xs ys (vacc ++ acc) ≡ just (l , (found ++ vacc) ++ acc)
                 → amgus (Vec.map (sub acc <|_) xs) (Vec.map (sub acc <|_) ys) vacc ≡ just (l , (found ++ vacc))
-amgu-complete'' [] [] acc vacc found eq = {!!}
+amgu-complete'' [] [] acc vacc found eq with eq-subst _ _ (Maybeₚ.just-injective eq)
+amgu-complete'' [] [] acc vacc found eq | rr = TODO
 amgu-complete'' (x ∷ xs) (y ∷ ys) acc vacc found eq
   with just (_ , xyσ) ← amgu x y (vacc ++ acc) | [ xyeq ] ← inspect (amgu x y) (vacc ++ acc)
   with just (_ , xsysσ) ← amgus xs ys xyσ | [ xsyseq ] ← inspect (amgus xs ys) xyσ
   with xyfound , refl ← amgu-acc x y (vacc ++ acc) xyσ xyeq
   with xsysfound , refl ← amgus-acc xs ys xyσ xsysσ xsyseq
   rewrite amgu-complete' x y acc vacc xyfound xyeq
-  rewrite amgu-complete'' xs ys acc (xyfound ++ vacc) xsysfound {!xsyseq!}
-  = {!eq!}
+  rewrite amgu-complete'' xs ys acc (xyfound ++ vacc) xsysfound TODO
+  = cong just (≅.≅-to-≡ TODO) -- (eq-subst (xsysfound ++ (xyfound ++ vacc)) (found ++ vacc) ?))
   where open ≡.≡-Reasoning
 
 
@@ -310,10 +288,10 @@ amgu-complete''' : ∀ {len} (xs ys : Vec (Type m) len) (acc : AList m n) (found
 amgu-complete''' xs ys acc found eq rewrite ++-id acc = amgu-complete'' xs ys acc [] found
                                                         (trans (cong (amgus xs ys) (++-id _)) eq)
 
-amgus-unifies : (xs ys : Vec (Type m) k) (acc : AList m l) (σ : AList m n)
-              → amgus xs ys acc ≡ just (n , σ) → [ σ ]⇓ xs ≡ [ σ ]⇓ ys
-amgus-unifies [] [] acc σ eq = refl
-amgus-unifies (x ∷ xs) (y ∷ ys) acc σ eq
+amgus-sound : (xs ys : Vec (Type m) k) (acc : AList m l) (σ : AList m n)
+              → amgus xs ys acc ≡ just (n , σ) → [ sub σ ]⇓ xs ≡ [ sub σ ]⇓ ys
+amgus-sound [] [] acc σ eq = refl
+amgus-sound (x ∷ xs) (y ∷ ys) acc σ eq
   with just (_ , xyσ) ← amgu x y acc | [ xyeq ] ← inspect (amgu x y) acc
   with just (_ , xsysσ) ← amgus xs ys xyσ | [ xsyseq ] ← inspect (amgus xs ys) xyσ
   with xyfound , refl ← amgu-acc x y acc xyσ xyeq
@@ -327,7 +305,7 @@ amgus-unifies (x ∷ xs) (y ∷ ys) acc σ eq
   (sub xsysfound <| (sub (xyfound ++ acc) <| x)) ∷ Vec.map (((sub xsysfound) <|_) ∘ ((sub (xyfound ++ acc)) <|_)) xs
     ≡⟨ cong₂ _∷_ refl (Vecₚ.map-∘ ((sub xsysfound) <|_) (sub (xyfound ++ acc) <|_) xs) ⟩
   (sub xsysfound <| (sub xyσ <| x)) ∷ Vec.map (_<|_ (sub xsysfound)) (Vec.map (_<|_ (sub (xyfound ++ acc))) xs)
-    ≡⟨ cong₂ _∷_ (cong (sub xsysfound <|_) (amgu-unifies x y acc (xyfound ++ acc) xyeq)) (amgus-unifies (Vec.map (sub (xyfound ++ acc) <|_) xs) (Vec.map (sub (xyfound ++ acc) <|_) ys) [] xsysfound (amgu-complete''' xs ys xyσ xsysfound xsyseq)) ⟩
+    ≡⟨ cong₂ _∷_ (cong (sub xsysfound <|_) (amgu-sound x y acc (xyfound ++ acc) xyeq)) (amgus-sound (Vec.map (sub (xyfound ++ acc) <|_) xs) (Vec.map (sub (xyfound ++ acc) <|_) ys) [] xsysfound (amgu-complete''' xs ys xyσ xsysfound xsyseq)) ⟩
   (sub xsysfound <| (sub xyσ <| y)) ∷ Vec.map (_<|_ (sub xsysfound)) (Vec.map (_<|_ (sub (xyfound ++ acc))) ys)
     ≡˘⟨ cong₂ _∷_ refl (Vecₚ.map-∘ ((sub xsysfound) <|_) (sub xyσ <|_) ys) ⟩
   (sub xsysfound <| (sub xyσ <| y)) ∷ Vec.map (((sub xsysfound) <|_) ∘ ((sub xyσ) <|_)) ys
@@ -339,6 +317,6 @@ amgus-unifies (x ∷ xs) (y ∷ ys) acc σ eq
   where open ≡.≡-Reasoning
 
 
-unify-unifies : (xs ys : Vec (Type m) k) {σ : AList m n}
-              → unify xs ys ≡ just (n , σ) → [ σ ]⇓ xs ≡ [ σ ]⇓ ys
-unify-unifies xs ys eq = amgus-unifies xs ys [] _ eq
+unify-sound : (xs ys : Vec (Type m) k) {σ : AList m n}
+              → unify xs ys ≡ just (n , σ) → [ sub σ ]⇓ xs ≡ [ sub σ ]⇓ ys
+unify-sound xs ys eq = amgus-sound xs ys [] _ eq
