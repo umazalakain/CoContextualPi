@@ -1,30 +1,14 @@
 
-open import Function using (_∘_; _$_)
-open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; _≢_; trans; cong; cong₂; sym; inspect) renaming ([_] to I[_])
-open import Relation.Nullary using (¬_; Dec; _because_; yes; no; does)
-import Relation.Nullary.Decidable as Decidable
-open import Relation.Nullary.Negation using (contradiction)
-import Level
+open import Function using (_∘_)
+open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; trans; inspect) renaming ([_] to I[_])
 
-open import Data.Sum as Sum using (_⊎_; inj₁; inj₂)
 open import Data.Maybe as Maybe using (Maybe; just; nothing)
-open import Data.Unit as Unit using (⊤; tt)
-open import Data.Empty as Empty using (⊥)
-open import Data.Bool.Base as Bool using (Bool; true; false; if_then_else_)
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
-open import Data.List as List using (List; []; _∷_)
 open import Data.Vec as Vec using (Vec; []; _∷_; [_])
-open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
-open import Data.List.Relation.Unary.AllPairs as AllPairs using (AllPairs; []; _∷_)
 
-import Data.List.Properties as Listₚ
 import Data.Vec.Properties as Vecₚ
-import Data.Nat.Properties as ℕₚ
-import Data.Fin.Properties as Finₚ
-import Data.Maybe.Properties as Maybeₚ
-import Data.Product.Properties as Productₚ
 
 open import CoContextualPi.Types
 open import CoContextualPi.TypingRules

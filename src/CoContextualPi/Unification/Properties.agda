@@ -1,5 +1,5 @@
 open import Function using (_∘_)
-open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; _≢_; trans; cong; cong₂; sym; inspect; [_])
+open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; _≢_; trans; cong; cong₂; sym; subst; inspect; [_])
 open import Relation.Binary.HeterogeneousEquality as ≅ using (_≅_)
 open import Relation.Nullary.Negation using (contradiction)
 
@@ -9,6 +9,7 @@ open import Data.Nat.Base as ℕ using (ℕ; zero; suc)
 open import Data.Fin.Base as Fin using (Fin; zero; suc)
 open import Data.Vec.Base as Vec using (Vec; []; _∷_)
 
+import Data.Nat.Properties as ℕₚ
 import Data.Fin.Properties as Finₚ
 import Data.Maybe.Properties as Maybeₚ
 import Data.Product.Properties as Productₚ
@@ -115,24 +116,30 @@ sub-++ xs (ys -, (i ↦ t')) t
 ++-assoc xs ys [] = refl
 ++-assoc xs ys (zs -, x) = cong (_-, x) (++-assoc xs ys zs)
 
-data _≣_ : AList m l → AList m k → Set where
-  [] :  _≣_ {m = m} [] []
-  _-,_ : {xs : AList m l} {ys : AList m k} → xs ≣ ys → (x : Subst m) → (xs -, x) ≣ (ys -, x)
+-,-injectiveˡ : {xs ys : AList m n} {x y : Subst m} → xs -, x ≡ ys -, y → xs ≡ ys
+-,-injectiveˡ refl = refl
 
-{-
-Π-to-≣ : {xs : AList m n} {ys : AList m k} → _≡_ {A = Σ ℕ (AList m)} (n , xs) (k , ys) → xs ≣ ys
-Π-to-≣ {xs = []} {[]} eq = []
-Π-to-≣ {xs = xs -, x} {ys -, y} eq = {!!}
+-,-injectiveʳ : {xs ys : AList m n} {x y : Subst m} → xs -, x ≡ ys -, y → x ≡ y
+-,-injectiveʳ refl = refl
 
--,-injective : {xs : AList m n} {ys : AList m l} {x : Subst m} → xs -, x ≅ ys -, x → xs ≅ ys
--,-injective {xs = []} {[]} eq = _≅_.refl
--,-injective {xs = []} {ys -, x} eq = {!eq!}
--,-injective {xs = xs -, x} {ys} eq = {!!}
+++-cancelʳ : (xs ys : AList m n) (zs : AList l m) → xs ++ zs ≡ ys ++ zs → xs ≡ ys
+++-cancelʳ xs ys [] eq = eq
+++-cancelʳ xs ys (zs -, z) eq = ++-cancelʳ xs ys zs (-,-injectiveˡ eq)
 
-++-cancel : (xs : AList m n) (ys : AList m k) (zs : AList l m) → xs ++ zs ≅ ys ++ zs → xs ≅ ys
-++-cancel xs ys [] eq = eq
-++-cancel xs ys (zs -, z) eq = ++-cancel xs ys zs {!-,-injective eq!}
--}
+open import Data.Empty using (⊥; ⊥-elim)
+++-⊥ : (xs : AList m l) → m ℕ.< l → ⊥
+++-⊥ [] (ℕ.s≤s m<l) = ℕₚ.n≮n _ m<l
+++-⊥ (xs -, x) (ℕ.s≤s (ℕ.s≤s m<l)) = ++-⊥ xs (ℕ.s≤s (ℕₚ.≤-step m<l))
+
+++-[] : (xs : AList m m) → xs ≡ []
+++-[] [] = refl
+++-[] (xs -, x) = ⊥-elim (++-⊥ xs (ℕ.s≤s ℕₚ.≤-refl))
+
+++-cancelˡ : (xs : AList m n) (ys zs : AList l m) → xs ++ ys ≡ xs ++ zs → ys ≡ zs
+++-cancelˡ xs [] [] eq = refl
+++-cancelˡ xs [] (zs -, z) eq = ⊥-elim (++-⊥ zs (ℕ.s≤s ℕₚ.≤-refl))
+++-cancelˡ xs (ys -, y) [] eq = ⊥-elim (++-⊥ ys (ℕ.s≤s ℕₚ.≤-refl))
+++-cancelˡ xs (ys -, y) (zs -, z) eq rewrite -,-injectiveʳ eq = cong (_-, z) (++-cancelˡ xs ys zs (-,-injectiveˡ eq))
 
 flexFlex-sound : (x y : Fin m) (σ : AList m n) → flexFlex x y ≡ (n , σ) → sub σ x ≡ sub σ y
 flexFlex-sound {suc m} x y σ eq with thick x y | inspect (thick x) y
@@ -260,24 +267,23 @@ amgus-acc (x ∷ xs) (y ∷ ys) acc σ eq with amgu x y acc | inspect (amgu x y)
 ... | stfound , refl with amgus-acc xs ys stσ σ eq
 ... | xsfound , refl = _ , ++-assoc xsfound stfound acc
 
-eq-subst : (xs : AList m n) (ys : AList m l) → _≡_ {A = Σ ℕ (AList m)} (n , xs) (l , ys) → xs ≅ ys
-eq-subst xs .xs refl = _≅_.refl
-
-postulate TODO : ∀ {a} {A : Set a} → A
 
 amgu-complete'' : ∀ {len} (xs ys : Vec (Type m) len) (acc : AList m n) (vacc : AList n k) (found : AList k l)
                 → amgus xs ys (vacc ++ acc) ≡ just (l , (found ++ vacc) ++ acc)
                 → amgus (Vec.map (sub acc <|_) xs) (Vec.map (sub acc <|_) ys) vacc ≡ just (l , (found ++ vacc))
-amgu-complete'' [] [] acc vacc found eq with eq-subst _ _ (Maybeₚ.just-injective eq)
-amgu-complete'' [] [] acc vacc found eq | rr = TODO
+amgu-complete'' [] [] acc vacc found eq
+  with refl ← Productₚ.,-injectiveˡ (Maybeₚ.just-injective eq)
+  = cong (just ∘ (_ ,_)) (++-cancelʳ vacc (found ++ vacc) acc
+                         (Productₚ.,-injectiveʳ-≡ (λ {refl refl → refl}) (Maybeₚ.just-injective eq) refl))
 amgu-complete'' (x ∷ xs) (y ∷ ys) acc vacc found eq
   with just (_ , xyσ) ← amgu x y (vacc ++ acc) | [ xyeq ] ← inspect (amgu x y) (vacc ++ acc)
   with just (_ , xsysσ) ← amgus xs ys xyσ | [ xsyseq ] ← inspect (amgus xs ys) xyσ
   with xyfound , refl ← amgu-acc x y (vacc ++ acc) xyσ xyeq
   with xsysfound , refl ← amgus-acc xs ys xyσ xsysσ xsyseq
   rewrite amgu-complete' x y acc vacc xyfound xyeq
-  rewrite amgu-complete'' xs ys acc (xyfound ++ vacc) xsysfound TODO
-  = cong just (≅.≅-to-≡ TODO) -- (eq-subst (xsysfound ++ (xyfound ++ vacc)) (found ++ vacc) ?))
+  rewrite amgu-complete'' xs ys acc (xyfound ++ vacc) xsysfound (subst (λ ● → amgus xs ys ● ≡ just (_ , (xsysfound ++ (xyfound ++ vacc)) ++ acc)) (++-assoc xyfound vacc acc) (trans xsyseq (cong (just ∘ (_ ,_)) (trans (++-assoc xsysfound xyfound (vacc ++ acc)) (trans (++-assoc (xsysfound ++ xyfound) vacc acc) (cong (_++ acc) (sym (++-assoc xsysfound xyfound vacc))))))))
+  with refl ← Productₚ.,-injectiveˡ (Maybeₚ.just-injective eq)
+  = cong (just ∘ (_ ,_)) (++-cancelʳ _ _ acc (trans (sym (++-assoc xsysfound (xyfound ++ vacc) acc)) (trans (cong (xsysfound ++_) (sym (++-assoc xyfound vacc acc))) (Productₚ.,-injectiveʳ-≡ (λ {refl refl → refl}) (Maybeₚ.just-injective eq) refl))))
   where open ≡.≡-Reasoning
 
 
