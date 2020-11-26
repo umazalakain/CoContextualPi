@@ -178,7 +178,7 @@ amgu-acc {one} s t (acc -, z ↦ r) eq
 
 
 amgu-sound : (s t : UTerm u m) (acc : ∃ (Subst m)) {σ : Subst m l}
-             → amgu s t acc ≡ just (l , σ) → (sub σ <|) s ≡ (sub σ <|) t
+           → amgu s t acc ≡ just (l , σ) → (sub σ <|) s ≡ (sub σ <|) t
 amgu-sound {vec _} [] [] acc eq = refl
 amgu-sound {vec _} (x ∷ xs) (y ∷ ys) (_ , acc) eq
   with just (_ , acc') ← amgu x y (_ , acc)
@@ -221,3 +221,8 @@ amgu-sound {one} s t (_ , acc -, z ↦ r) eq
   rewrite sym (<|-assoc (sub acc') (Maybe.maybe var r ∘ thick z) s)
   rewrite sym (<|-assoc (sub acc') (Maybe.maybe var r ∘ thick z) t)
   = amgu-sound ((r for z <|) s) ((r for z <|) t) (_ , acc) steq
+
+
+unify-sound : (s t : UTerm u m) {σ : Subst m l}
+            → unify s t ≡ just (l , σ) → (sub σ <|) s ≡ (sub σ <|) t
+unify-sound s t = amgu-sound s t idSubst

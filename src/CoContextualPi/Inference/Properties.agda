@@ -67,36 +67,6 @@ merge-⊢ xs ys eq
   rewrite sym (amgu-sound ((|> left-inject <|) xs) ((|> right-inject <|) ys) idSubst req)
   = eq
 
-infer-sound-comp : {xs : Ctx n l} {ys : Ctx n m} {zs : Ctx n k} {P Q : Process n}
-                → xs ⊢ P → ys ⊢ Q
-                → merge xs ys ≡ just (k , zs)
-                → zs ⊢ comp P Q
-infer-sound-comp {xs = xs} {ys = ys} ⊢P ⊢Q eq
-  = comp (unify-⊢ ((|> left-inject <|) xs) ((|> right-inject <|) ys) (<|-⊢ (|> left-inject) ⊢P) eq)
-         (unify-⊢ ((|> left-inject <|) xs) ((|> right-inject <|) ys) (<|-⊢ (|> right-inject) ⊢Q) (merge-⊢ xs ys eq))
-
-infer-sound-recv : (x : Fin n) {y : Type m} {Γ : Ctx n m} {Γ' : Ctx n l}
-                → (y ∷ Γ) ⊢ P
-                → unify-apply [ Vec.lookup Γ x ] [ # y ] Γ ≡ just (l , Γ')
-                → Γ' ⊢ recv x P
-infer-sound-recv x {y} {Γ} ⊢P eq
-  with just (_ , σ) ← unify (Vec.lookup Γ x) (# y)
-     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# y)
-  with refl ← eq
-  = recv (trans (<|-lookup (sub σ) Γ) (amgu-sound (Vec.lookup Γ x) _ _ req))
-         (<|-⊢ (sub σ) ⊢P)
-
-infer-sound-send : (x y : Fin n) {Γ : Ctx n m} {Γ' : Ctx n l}
-                → Γ ⊢ P
-                → unify-apply [ Vec.lookup Γ x ] [ # Vec.lookup Γ y ] Γ ≡ just (l , Γ')
-                → Γ' ⊢ send x y P
-infer-sound-send x y {Γ} ⊢P eq
-  with just (_ , σ) ← unify (Vec.lookup Γ x) (# Vec.lookup Γ y)
-     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# Vec.lookup Γ y)
-  with refl ← eq
-  = send (trans (<|-lookup (sub σ) Γ) (amgu-sound (Vec.lookup Γ x) _ _ req))
-         (<|-lookup (sub σ) Γ)
-         (<|-⊢ (sub σ) ⊢P)
 
 
 infer-sound : (P : Process n) {Γ : Ctx n l} → infer P ≡ just (l , Γ) → Γ ⊢ P
@@ -111,12 +81,22 @@ infer-sound (new P) eq
 infer-sound (comp P Q) eq
   with just (_ , ΓP) ← infer P | I[ peq ] ← inspect infer P
   with just (_ , ΓQ) ← infer Q | I[ qeq ] ← inspect infer Q
-  = infer-sound-comp (infer-sound P peq) (infer-sound Q qeq) eq
+  = comp (unify-⊢ ((|> left-inject <|) ΓP) _ (<|-⊢ _ (infer-sound P peq)) eq)
+         (unify-⊢ ((|> left-inject <|) ΓP) _ (<|-⊢ _ (infer-sound Q qeq)) (merge-⊢ ΓP ΓQ eq))
 
 infer-sound (recv x P) eq
   with just (_ , y ∷ Γ) ← infer P | I[ qe ] ← inspect infer P
-  = infer-sound-recv x (infer-sound P qe) eq
+  with just (_ , σ) ← unify (Vec.lookup Γ x) (# y)
+     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# y)
+  with refl ← eq
+  = recv (trans (<|-lookup (sub σ) Γ) (unify-sound (Vec.lookup Γ x) _ req))
+         (<|-⊢ (sub σ) (infer-sound P qe))
 
 infer-sound (send x y P) eq
-  with just Γ ← infer P | I[ qe ] ← inspect infer P
-  = infer-sound-send x y (infer-sound P qe) eq
+  with just (_ , Γ) ← infer P | I[ qe ] ← inspect infer P
+  with just (_ , σ) ← unify (Vec.lookup Γ x) (# Vec.lookup Γ y)
+     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# Vec.lookup Γ y)
+  with refl ← eq
+  = send (trans (<|-lookup (sub σ) Γ) (amgu-sound (Vec.lookup Γ x) _ _ req))
+         (<|-lookup (sub σ) Γ)
+         (<|-⊢ (sub σ) (infer-sound P qe))
