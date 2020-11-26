@@ -1,23 +1,17 @@
-
 open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl)
 
-open import Data.Maybe as Maybe using (Maybe; just; nothing)
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec as Vec using (Vec; []; _∷_)
 
-import Data.Vec.Properties as Vecₚ
-
 open import CoContextualPi.Types
 
-module CoContextualPi.TypingRules where
-
+module CoContextualPi.TypeSystem where
 
 private
   variable
     n m l k : ℕ
-
 
 data Process : ℕ → Set where
   end  : Process n
@@ -26,10 +20,8 @@ data Process : ℕ → Set where
   recv : Fin n → Process (suc n) → Process n
   send : Fin n → Fin n → Process n → Process n
 
-
 Ctx : ℕ → ℕ → Set
 Ctx n m = Vec (Type m) n
-
 
 private
   variable
@@ -38,10 +30,8 @@ private
     t : Type l
     x y : Fin n
 
-
 _∋_∶_ : Ctx n m → Fin n → Type m → Set
 Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t
-
 
 data _⊢_ : Ctx n m → Process n → Set where
   end : Γ ⊢ end
@@ -64,6 +54,7 @@ data _⊢_ : Ctx n m → Process n → Set where
        → Γ ⊢ send x y P
 
 
+{-
 instantiate : Type m → Type zero
 instantiate = (λ _ → top) <|_
 
@@ -78,3 +69,4 @@ instantiate-⊢ (new t p) = new (instantiate t) (instantiate-⊢ p)
 instantiate-⊢ (comp p q) = comp (instantiate-⊢ p) (instantiate-⊢ q)
 instantiate-⊢ {Γ = Γ} (recv x p) = recv (instantiate-∋ Γ x) (instantiate-⊢ p)
 instantiate-⊢ {Γ = Γ} (send x y p) = send (instantiate-∋ Γ x) (instantiate-∋ Γ y) (instantiate-⊢ p)
+-}

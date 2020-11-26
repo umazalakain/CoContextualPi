@@ -27,13 +27,14 @@ import Data.Vec.Properties as Vecₚ
 
 module CoContextualPi.Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
 
--- Help ourselves to some goodies
-open RawFunctor {{...}}
-open RawApplicative {{...}} hiding (_<$>_)
-open RawMonad {{...}} hiding (_<$>_; _⊛_)
-instance maybeFunctor = maybeCat.functor
-instance maybeMonad = maybeCat.monad
-instance maybeApplicative = maybeCat.applicative
+private
+  -- Help ourselves to some goodies
+  open RawFunctor {{...}}
+  open RawApplicative {{...}} hiding (_<$>_)
+  open RawMonad {{...}} hiding (_<$>_; _⊛_)
+  instance maybeFunctor = maybeCat.functor
+  instance maybeMonad = maybeCat.monad
+  instance maybeApplicative = maybeCat.applicative
 
 
 infix 25 _for_
@@ -193,3 +194,7 @@ amgu {u = one} (con {kx} nx asx) (con {ky} ny asy) acc
 ...            | true = amgu asx asy acc
 amgu {u = one} s t (_ , acc -, z ↦ r) =
   Product.map₂ (_-, z ↦ r) <$> amgu ((r for z <|) s) ((r for z <|) t) (_ , acc)
+
+
+unify : UTerm u m → UTerm u m → Maybe(∃ (Subst m))
+unify s t = amgu s t idSubst

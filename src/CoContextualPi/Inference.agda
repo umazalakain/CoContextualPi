@@ -1,15 +1,19 @@
-open import Data.Maybe as Maybe using (Maybe; just; nothing; _>>=_)
+open import Category.Functor
+open import Category.Monad
+open import Category.Applicative
+
+open import Data.Maybe as Maybe using (Maybe; just; nothing)
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec as Vec using (Vec; []; _∷_; [_])
 
+import Data.Maybe.Categorical as maybeCat
 import Data.Nat.Properties as ℕₚ
 import Data.Fin.Properties as Finₚ
 
 open import CoContextualPi.Types
-open import CoContextualPi.TypingRules
-open import CoContextualPi.Unification
+open import CoContextualPi.TypeSystem
 
 module CoContextualPi.Inference where
 
@@ -17,17 +21,24 @@ private
   variable
     n m l k : ℕ
 
+private
+  -- Help ourselves to some goodies
+  open RawFunctor {{...}}
+  open RawApplicative {{...}} hiding (_<$>_)
+  open RawMonad {{...}} hiding (_<$>_; _⊛_)
+  instance maybeFunctor = maybeCat.functor
+  instance maybeMonad = maybeCat.monad
+  instance maybeApplicative = maybeCat.applicative
 
 
 fresh : Ctx n n
 fresh {n = zero} = []
-fresh {n = suc n} = ′ zero ∷ Vec.map (|> suc <|_) fresh
-
+fresh {n = suc n} = var zero ∷ Vec.map ((|> suc) <|) fresh
 
 
 unify-apply : Vec (Type m) l → Vec (Type m) l → Ctx n m → Maybe (Σ ℕ (Ctx n))
 unify-apply xs ys Γ = do (_ , σ) ← unify xs ys
-                         just (_ , [ sub σ ]⇓ Γ)
+                         just (_ , ((sub σ <|) Γ) )
 
 
 left-inject : Fin m → Fin (m ℕ.⊔ n)
@@ -39,9 +50,9 @@ right-inject x = Fin.inject≤ x (ℕₚ.n≤m⊔n _ _)
 
 
 merge : Ctx n m → Ctx n l → Maybe (Σ ℕ (Ctx n))
-merge xs ys = unify-apply ([ |> left-inject ]⇓ xs)
-                          ([ |> right-inject ]⇓ ys)
-                          ([ |> left-inject ]⇓ xs)
+merge xs ys = unify-apply ((|> left-inject <|) xs)
+                          ((|> right-inject <|) ys)
+                          ((|> left-inject <|) xs)
 
 
 infer : (p : Process n) → Maybe (Σ ℕ (Ctx n))
