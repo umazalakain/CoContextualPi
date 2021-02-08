@@ -27,11 +27,11 @@ Cons-dec Prod Sum = no λ ()
 Cons-dec Sum Prod = no λ ()
 Cons-dec Sum Sum = yes refl
 
-open import CoContextualPi.Unification Cons Cons-dec as Unification hiding (Term) public
+open import CoContextualPi.Unification Cons Cons-dec as Unification
+  renaming (Term to Type; UTerm to UType) public
 
-Type : ℕ → Set
-Type = Unification.Term
 
 infixr 25 #_
-#_ : Unification.Term n → Unification.Term n
-# t = Unification.con Chan (t ∷ [])
+pattern #_ t = Unification.con Chan (t ∷ [])
+pattern _‵×_ t s = Unification.con Prod (t ∷ s ∷ [])
+pattern _‵+_ t s = Unification.con Sum (t ∷ s ∷ [])

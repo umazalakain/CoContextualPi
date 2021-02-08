@@ -13,12 +13,20 @@ private
   variable
     n m l k : ℕ
 
+data Term : ℕ → Set where
+  var  : Fin n  → Term n
+  fst  : Term n → Term n
+  snd  : Term n → Term n
+  inl  : Term n → Term n
+  inr  : Term n → Term n
+  _‵,_ : Term n → Term n → Term n
+
 data Process : ℕ → Set where
   end  : Process n
   new  : Process (suc n) → Process n
   comp : Process n → Process n → Process n
-  recv : Fin n → Process (suc n) → Process n
-  send : Fin n → Fin n → Process n → Process n
+  recv : Term n → Process (suc n) → Process n
+  send : Term n → Term n → Process n → Process n
 
 Ctx : ℕ → ℕ → Set
 Ctx n m = Vec (Type m) n
@@ -27,11 +35,33 @@ private
   variable
     Γ : Ctx n l
     P Q : Process n
-    t : Type l
+    e f : Term n
+    t s : Type l
     x y : Fin n
 
 _∋_∶_ : Ctx n m → Fin n → Type m → Set
 Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t
+
+data _⊢_∶_ : Ctx n m → Term n → Type m → Set where
+  var : Γ ∋ x ∶ t
+      → Γ ⊢ var x ∶ t
+
+  fst : Γ ⊢ e ∶ (t ‵× s)
+      → Γ ⊢ fst e ∶ t
+
+  snd : Γ ⊢ e ∶ (t ‵× s)
+      → Γ ⊢ snd e ∶ s
+
+  inl : Γ ⊢ e ∶ t
+      → Γ ⊢ inl e ∶ (t ‵+ s)
+
+  inr : Γ ⊢ e ∶ s
+      → Γ ⊢ inr e ∶ (t ‵+ s)
+
+  _‵,_ : Γ ⊢ e ∶ s
+       → Γ ⊢ f ∶ t
+       → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
+
 
 data _⊢_ : Ctx n m → Process n → Set where
   end : Γ ⊢ end
@@ -44,14 +74,14 @@ data _⊢_ : Ctx n m → Process n → Set where
        → Γ ⊢ Q
        → Γ ⊢ (comp P Q)
 
-  recv : Γ ∋ x ∶ # t
+  recv : Γ ⊢ e ∶ # t
        → (t ∷ Γ) ⊢ P
-       → Γ ⊢ recv x P
+       → Γ ⊢ recv e P
 
-  send : Γ ∋ x ∶ # t
-       → Γ ∋ y ∶ t
+  send : Γ ⊢ e ∶ # t
+       → Γ ⊢ f ∶ t
        → Γ ⊢ P
-       → Γ ⊢ send x y P
+       → Γ ⊢ send e f P
 
 
 {-
