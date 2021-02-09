@@ -1,6 +1,7 @@
 open import Category.Functor
 open import Category.Monad
 open import Category.Applicative
+open import Function using (_∘_)
 
 open import Data.Maybe as Maybe using (Maybe; just; nothing)
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
@@ -20,6 +21,7 @@ module CoContextualPi.Inference where
 private
   variable
     n m l k : ℕ
+    u v : Univ
 
 private
   -- Help ourselves to some goodies
@@ -35,34 +37,69 @@ fresh : Ctx n n
 fresh {n = zero} = []
 fresh {n = suc n} = var zero ∷ Vec.map ((|> suc) <|) fresh
 
+shape : (∀ {n} → Type n → Type n → Type n) → Type (suc (suc m))
+shape f = f (var zero) (var (suc zero))
 
-unify-apply : Vec (Type m) l → Vec (Type m) l → Ctx n m → Maybe (Σ ℕ (Ctx n))
-unify-apply xs ys Γ = do (_ , σ) ← unify xs ys
-                         just (_ , ((sub σ <|) Γ) )
-
-
-left-inject : Fin m → Fin (m ℕ.⊔ n)
-left-inject x = Fin.inject≤ x (ℕₚ.m≤m⊔n _ _)
+unify-apply : UType u m → UType u m → ∀ {v} → UType v m → Maybe (Σ ℕ (UType v))
+unify-apply xs ys Γ = do _ , σ ← unify xs ys
+                         return (_ , ((sub σ <|) Γ) )
 
 
-right-inject : Fin n → Fin (m ℕ.⊔ n)
-right-inject x = Fin.inject≤ x (ℕₚ.n≤m⊔n _ _)
+left-inject : Fin m → Fin (m ℕ.+ n)
+left-inject x = Fin.inject≤ x (ℕₚ.m≤m+n _ _)
 
 
-merge : Ctx n m → Ctx n l → Maybe (Σ ℕ (Ctx n))
-merge xs ys = unify-apply ((|> left-inject <|) xs)
-                          ((|> right-inject <|) ys)
-                          ((|> left-inject <|) xs)
+right-raise : Fin n → Fin (m ℕ.+ n)
+right-raise = Fin.raise _
+
+
+_==_ : UType u n → UType u m → Maybe (∃[ l ] ((∀ {v} → UType v n → UType v l)
+                                           ×  (∀ {v} → UType v m → UType v l)))
+(x == y) = do (_ , σ) ← unify ((|> left-inject <|) x) ((|> right-raise <|) y)
+              return (_ , (λ {_} → (sub σ ∘ left-inject) <|) , (λ {_} → (sub σ ∘ right-raise) <|))
+
+
+inferTerm : Term n → Maybe (∃[ m' ] (Ctx n m' × Type m'))
+inferTerm top      = just (_ , fresh , ‵⊤)
+inferTerm (var x)  = just (_ , fresh , Vec.lookup fresh x)
+inferTerm (fst e)  = do _ , Γ₁ , t ← inferTerm e
+                        _ , fromLeft , fromRight ← t == shape {zero} _‵×_
+                        return (_ , fromLeft Γ₁ , fromRight (var zero))
+inferTerm (snd e)  = do _ , Γ₁ , t ← inferTerm e
+                        let shape = var zero ‵× var (suc (zero {zero}))
+                        _ , fromLeft , fromRight ← t == shape
+                        return (_ , fromLeft Γ₁ , fromRight {one} (var (suc zero)))
+inferTerm (inl e)  = do _ , Γ' , t ← inferTerm e
+                        return (_ , (|> suc <|) Γ' , (|> suc <|) t ‵+ var zero)
+inferTerm (inr e)  = do _ , Γ' , t ← inferTerm e
+                        return (_ , (|> suc <|) Γ' , var zero ‵+ (|> suc <|) t)
+inferTerm (e ‵, f) = do _ , Γ₁ , t ← inferTerm e
+                        _ , Γ₂ , s ← inferTerm f
+                        _ , fromLeft , fromRight ← Γ₁ == Γ₂
+                        return (_ , fromLeft Γ₁ , fromLeft t ‵× fromRight s)
 
 
 infer : (p : Process n) → Maybe (Σ ℕ (Ctx n))
-infer end = just (_ , fresh)
-infer (new p) = do (_ , _ ∷ Γ) ← infer p
-                   just (_ , Γ)
-infer (comp p q) = do _ , Γ₁ ← infer p
-                      _ , Γ₂ ← infer q
-                      merge Γ₁ Γ₂
-infer (recv x p) = do _ , (y ∷ Γ) ← infer p
-                      unify-apply [ Vec.lookup Γ x ] [ # y ] Γ
-infer (send x y p) = do _ , Γ ← infer p
-                        unify-apply [ Vec.lookup Γ x ] [ # Vec.lookup Γ y ] Γ
+infer end          = just (_ , fresh)
+infer (new p)      = do (_ , _ ∷ Γ) ← infer p
+                        return (_ , Γ)
+infer (comp p q)   = do _ , Γ₁ ← infer p
+                        _ , Γ₂ ← infer q
+                        _ , fromLeft , _ ← Γ₁ == Γ₂
+                        return (_ , fromLeft Γ₁)
+infer (recv e p)   = do _ , Γ₁ , c ← inferTerm e
+                        _ , (v ∷ Γ₂) ← infer p
+                        _ , fromLeft , _ ← (c ∷ Γ₁) == (# v ∷ Γ₂)
+                        return (_ , fromLeft Γ₁)
+infer (send e f p) = do _ , Γ₁ , c ← inferTerm e
+                        _ , Γ₂ , v ← inferTerm f
+                        _ , Γ₃ ← infer p
+                        _ , fromLeft₁ , _ ← (c ∷ Γ₁) == (# v ∷ Γ₂)
+                        _ , _ , fromRight₂ ← fromLeft₁ Γ₁ == Γ₃
+                        return (_ , fromRight₂ Γ₃)
+infer (case e p q) = do _ , Γ₁ , v ← inferTerm e
+                        _ , (l ∷ Γ₂) ← infer p
+                        _ , (r ∷ Γ₃) ← infer q
+                        _ , fromLeft₁ , fromRight₁ ← Γ₂ == Γ₃
+                        _ , fromLeft₂ , fromRight₂ ← (fromLeft₁ l ‵+ fromRight₁ r ∷ fromLeft₁ Γ₂) == (v ∷ Γ₁)
+                        return (_ , fromRight₂ Γ₁)
