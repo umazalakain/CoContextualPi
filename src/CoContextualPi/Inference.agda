@@ -45,40 +45,40 @@ unify-apply xs ys Γ = do _ , σ ← unify xs ys
                          return (_ , ((sub σ <|) Γ) )
 
 
-left-inject : Fin m → Fin (m ℕ.+ n)
-left-inject x = Fin.inject≤ x (ℕₚ.m≤m+n _ _)
+_==_ = unify
+
+<[_] : UType u n → UType u (n ℕ.+ m)
+<[ x ] = (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _)) <|) x
+
+_<|[_] : Subst (n ℕ.+ m) l → UType u n → UType u l
+_<|[_] σ = sub σ <| ∘ <[_]
+
+[_]> : UType u n → UType u (m ℕ.+ n)
+[ x ]> = (|> (Fin.raise _) <|) x
+
+[_]|>_ : UType u m → Subst (n ℕ.+ m) l → UType u l
+[_]|>_ x σ = (sub σ <|) [ x ]>
 
 
-right-raise : Fin n → Fin (m ℕ.+ n)
-right-raise = Fin.raise _
-
-
-_==_ : UType u n → UType u m → Maybe (∃[ l ] ((∀ {v} → UType v n → UType v l)
-                                           ×  (∀ {v} → UType v m → UType v l)))
-(x == y) = do ! σ ← unify ((|> left-inject <|) x) ((|> right-raise <|) y)
-              return (! (λ {_} → (sub σ ∘ left-inject) <|)
-                      , (λ {_} → (sub σ ∘ right-raise) <|))
-
-
-inferExpr : Expr n → Maybe (∃[ m' ] (Ctx n m' × Type m'))
+inferExpr : Expr n → Maybe (∃[ m ] (Ctx n m × Type m))
 inferExpr top      = return (! fresh , ‵⊤)
 inferExpr (var x)  = return (! fresh , Vec.lookup fresh x)
 inferExpr (fst e)  = do ! Γ₁ , t ← inferExpr e
                         let shape = var zero ‵× var (suc (zero {zero}))
-                        ! fromLeft , fromRight ← t == shape
-                        return (! fromLeft Γ₁ , fromRight (var zero))
+                        ! σ ← <[ t ] == [ shape ]>
+                        return (! σ <|[ Γ₁ ] , [ var zero ]|> σ)
 inferExpr (snd e)  = do ! Γ₁ , t ← inferExpr e
                         let shape = var zero ‵× var (suc (zero {zero}))
-                        ! fromLeft , fromRight ← t == shape
-                        return (! fromLeft Γ₁ , fromRight {one} (var (suc zero)))
+                        ! σ ← <[ t ] == [ shape ]>
+                        return (! σ <|[ Γ₁ ] , [ var (suc zero) ]|> σ)
 inferExpr (inl e)  = do ! Γ' , t ← inferExpr e
-                        return (! (|> suc <|) Γ' , (|> suc <|) t ‵+ var zero)
+                        return (! (<[ Γ' ] , <[ t ] ‵+ [ var (zero {zero}) ]> ))
 inferExpr (inr e)  = do ! Γ' , t ← inferExpr e
-                        return (! (|> suc <|) Γ' , var zero ‵+ (|> suc <|) t)
+                        return (! ([ Γ' ]> , <[ var (zero {zero}) ] ‵+ [_]> {m = 1} t ))
 inferExpr (e ‵, f) = do ! Γ₁ , t ← inferExpr e
                         ! Γ₂ , s ← inferExpr f
-                        ! fromLeft , fromRight ← Γ₁ == Γ₂
-                        return (! fromLeft Γ₁ , fromLeft t ‵× fromRight s)
+                        ! σ ← <[ Γ₁ ] == [ Γ₂ ]>
+                        return (! σ <|[ Γ₁ ] , (σ <|[ t ]) ‵× ([ s ]|> σ))
 
 
 infer : (p : Proc n) → Maybe (Σ ℕ (Ctx n))
@@ -87,21 +87,21 @@ infer (new p)      = do ! _ ∷ Γ ← infer p
                         return (! Γ)
 infer (comp p q)   = do ! Γ₁ ← infer p
                         ! Γ₂ ← infer q
-                        ! fromLeft , _ ← Γ₁ == Γ₂
-                        return (! fromLeft Γ₁)
+                        ! σ ← <[ Γ₁ ] == [ Γ₂ ]>
+                        return (! σ <|[ Γ₁ ])
 infer (recv e p)   = do ! Γ₁ , c ← inferExpr e
                         ! (v ∷ Γ₂) ← infer p
-                        ! fromLeft , _ ← (c ∷ Γ₁) == (# v ∷ Γ₂)
-                        return (! fromLeft Γ₁)
+                        ! σ ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
+                        return (! σ <|[ Γ₁ ])
 infer (send e f p) = do ! Γ₁ , c ← inferExpr e
                         ! Γ₂ , v ← inferExpr f
                         ! Γ₃ ← infer p
-                        ! fromLeft₁ , _ ← (c ∷ Γ₁) == (# v ∷ Γ₂)
-                        ! _ , fromRight₂ ← fromLeft₁ Γ₁ == Γ₃
-                        return (! fromRight₂ Γ₃)
+                        ! σ₁ ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
+                        ! σ₂ ← <[ σ₁ <|[ Γ₁ ] ] == [ Γ₃ ]>
+                        return (! [ Γ₃ ]|> σ₂)
 infer (case e p q) = do ! Γ₁ , v ← inferExpr e
                         ! (l ∷ Γ₂) ← infer p
                         ! (r ∷ Γ₃) ← infer q
-                        ! fromLeft₁ , fromRight₁ ← Γ₂ == Γ₃
-                        ! fromLeft₂ , fromRight₂ ← (fromLeft₁ l ‵+ fromRight₁ r ∷ fromLeft₁ Γ₂) == (v ∷ Γ₁)
-                        return (! fromRight₂ Γ₁)
+                        ! σ₁ ← <[ Γ₂ ] == [ Γ₃ ]>
+                        ! σ₂ ← <[ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ] == [ v ∷ Γ₁ ]>
+                        return (! [ Γ₁ ]|> σ₂)

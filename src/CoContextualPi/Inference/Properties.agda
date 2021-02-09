@@ -12,6 +12,8 @@ open import Data.Vec as Vec using (Vec; []; _∷_; [_])
 
 import Data.Maybe.Categorical as maybeCat
 import Data.Vec.Properties as Vecₚ
+import Data.Maybe.Properties as Maybeₚ
+import Data.Nat.Properties as ℕₚ
 
 open import CoContextualPi.Types
 open import CoContextualPi.TypeSystem
@@ -23,7 +25,7 @@ module CoContextualPi.Inference.Properties where
 private
   variable
     n m l k : ℕ
-    P Q : Process n
+    P Q : Proc n
 
 private
   -- Help ourselves to some goodies
@@ -44,32 +46,84 @@ private
      → xs ∋ x ∶ t → ((σ <|) xs) ∋ x ∶ ((σ <|) t)
 <|-∋ σ xs refl = <|-lookup σ xs
 
-<|-⊢ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {P : Process n} → xs ⊢ P → ((σ <|) xs) ⊢ P
+<|-⊢-∶ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {e : Expr n} {t : Type m}
+       → xs ⊢ e ∶ t → ((σ <|) xs) ⊢ e ∶ ((σ <|) t)
+<|-⊢-∶ σ top = top
+<|-⊢-∶ σ {xs} (var x) = var (<|-∋ σ xs x)
+<|-⊢-∶ σ (fst ⊢e) = fst (<|-⊢-∶ σ ⊢e)
+<|-⊢-∶ σ (snd ⊢e) = snd (<|-⊢-∶ σ ⊢e)
+<|-⊢-∶ σ (inl ⊢e) = inl (<|-⊢-∶ σ ⊢e)
+<|-⊢-∶ σ (inr ⊢e) = inr (<|-⊢-∶ σ ⊢e)
+<|-⊢-∶ σ (⊢e ‵, ⊢f) = (<|-⊢-∶ σ ⊢e) ‵, (<|-⊢-∶ σ ⊢f)
+
+<|-⊢ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {P : Proc n} → xs ⊢ P → ((σ <|) xs) ⊢ P
 <|-⊢ σ end = end
 <|-⊢ σ (new t ⊢P) = new _ (<|-⊢ σ ⊢P)
 <|-⊢ σ (comp ⊢P ⊢Q) = comp (<|-⊢ σ ⊢P) (<|-⊢ σ ⊢Q)
-<|-⊢ σ {xs} (recv x ⊢P) = recv (<|-∋ σ xs x) (<|-⊢ σ ⊢P)
-<|-⊢ σ {xs} (send x y ⊢P) = send (<|-∋ σ xs x) (<|-∋ σ xs y) (<|-⊢ σ ⊢P)
+<|-⊢ σ (recv e ⊢P) = recv (<|-⊢-∶ σ e) (<|-⊢ σ ⊢P)
+<|-⊢ σ (send e f ⊢P) = send (<|-⊢-∶ σ e) (<|-⊢-∶ σ f) (<|-⊢ σ ⊢P)
+<|-⊢ σ (case e ⊢P ⊢Q) = case (<|-⊢-∶ σ e) (<|-⊢ σ ⊢P) (<|-⊢ σ ⊢Q)
 
 
-unify-⊢ : {xs : Vec (Type m) n} {ys : Vec (Type l) n} (lhs rhs : Vec (Type m) k) {P : Process n}
+unify-⊢ : {xs : Vec (Type m) n} {ys : Vec (Type l) n} (lhs rhs : Vec (Type m) k) {P : Proc n}
         → xs ⊢ P → unify-apply lhs rhs xs ≡ just (l , ys) → ys ⊢ P
 unify-⊢ lhs rhs ⊢P eq with unify lhs rhs
 unify-⊢ lhs rhs ⊢P refl | just (_ , σ) = <|-⊢ (sub σ) ⊢P
 
-
+{-
 merge-⊢ : (xs : Ctx n l) (ys : Ctx n m) {zs : Ctx n k}
-        → unify-apply ((|> left-inject <|) xs) ((|> right-inject <|) ys) ((|> left-inject <|) xs) ≡ just (k , zs)
-        → unify-apply ((|> left-inject <|) xs) ((|> right-inject <|) ys) ((|> right-inject <|) ys) ≡ just (k , zs)
+        → unify-apply ((|> left-inject <|) xs) ((|> right-raise <|) ys) ((|> left-inject <|) xs) ≡ just (k , zs)
+        → unify-apply ((|> left-inject <|) xs) ((|> right-raise <|) ys) ((|> right-raise <|) ys) ≡ just (k , zs)
 merge-⊢ xs ys eq
-  with just σ ← unify ((|> left-inject <|) xs) ((|> right-inject <|) ys)
-     | I[ req ] ← inspect (unify ((|> left-inject <|) xs)) ((|> right-inject <|) ys)
-  rewrite sym (amgu-sound ((|> left-inject <|) xs) ((|> right-inject <|) ys) idSubst req)
+  with just σ ← unify ((|> left-inject <|) xs) ((|> right-raise <|) ys)
+     | I[ req ] ← inspect (unify ((|> left-inject <|) xs)) ((|> right-raise <|) ys)
+  rewrite sym (amgu-sound ((|> left-inject <|) xs) ((|> right-raise <|) ys) idSubst req)
   = eq
+  -}
+
+inferExpr-sound : {Γ : Ctx n l} (e : Expr n) {t : Type l}
+                → inferExpr e ≡ just (! Γ , t)
+                → Γ ⊢ e ∶ t
+inferExpr-sound top refl = top
+inferExpr-sound (var x) refl = var refl
+inferExpr-sound (fst e) {t} eq
+  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
+     | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
+  with refl ← eq
+  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 2) )) (inferExpr-sound e qe))
+  rewrite unify-sound <[ t ] [ var zero ‵× var (suc (zero {zero})) ]> teq
+  = fst ra
+inferExpr-sound (snd e) eq
+  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
+     | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
+  with refl ← eq
+  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 2) )) (inferExpr-sound e qe))
+  rewrite unify-sound <[ t ] [ var zero ‵× var (suc (zero {zero})) ]> teq
+  = snd ra
+inferExpr-sound (inl e) eq
+  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with refl ← eq
+  = inl (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 1) )) (inferExpr-sound e qe))
+inferExpr-sound (inr e) eq
+  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with refl ← eq
+  = inr (<|-⊢-∶ (|> (Fin.raise 1)) (inferExpr-sound e qe))
+inferExpr-sound (e ‵, f) eq
+  with just (! Γ₁ , t) ← inferExpr e | I[ eql ] ← inspect inferExpr e
+  with just (! Γ₂ , s) ← inferExpr f | I[ eqr ] ← inspect inferExpr f
+  with just (! σ) ← unify <[ Γ₁ ] [ Γ₂ ]>
+  | I[ ueq ] ← inspect (unify <[ Γ₁ ]) [ Γ₂ ]>
+  with refl ← eq
+  with l ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (inferExpr-sound e eql))
+  with r ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (Fin.raise _)) (inferExpr-sound f eqr))
+  rewrite unify-sound <[ Γ₁ ] [ Γ₂ ]> ueq
+  = l ‵, r
 
 
-
-infer-sound : (P : Process n) {Γ : Ctx n l} → infer P ≡ just (l , Γ) → Γ ⊢ P
+{-
+infer-sound : (P : Proc n) {Γ : Ctx n l} → infer P ≡ just (l , Γ) → Γ ⊢ P
 
 infer-sound end eq = end
 
@@ -84,19 +138,27 @@ infer-sound (comp P Q) eq
   = comp (unify-⊢ ((|> left-inject <|) ΓP) _ (<|-⊢ _ (infer-sound P peq)) eq)
          (unify-⊢ ((|> left-inject <|) ΓP) _ (<|-⊢ _ (infer-sound Q qeq)) (merge-⊢ ΓP ΓQ eq))
 
-infer-sound (recv x P) eq
-  with just (_ , y ∷ Γ) ← infer P | I[ qe ] ← inspect infer P
-  with just (_ , σ) ← unify (Vec.lookup Γ x) (# y)
-     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# y)
+infer-sound (recv e P) eq
+  with just (_ , s ∷ Γ) ← infer P | I[ eqP ] ← inspect infer P
+  with just t ← inferExpr Γ e | I[ eqe ] ← inspect (inferExpr Γ) e
+  with just (_ , σ) ← unify t (# (|> Fin.inject₁ <|) s)
+       | I[ req ]   ← inspect (unify t) (# (|> Fin.inject₁ <|) s)
   with refl ← eq
-  = recv (trans (<|-lookup (sub σ) Γ) (unify-sound (Vec.lookup Γ x) _ req))
-         (<|-⊢ (sub σ) (infer-sound P qe))
+  = recv {!<|-⊢-∶ (sub σ) {!!} (inferExpr-sound {!!} e {!eqe!})!}
+         (<|-⊢ (sub σ) (<|-⊢ (|> Fin.inject₁) (infer-sound P eqP)))
+  {-
+  recv {!(trans {!(<|-lookup (sub σ) Γ)!} (unify-sound t _ req))!}
+         (<|-⊢ (sub σ) (infer-sound P {!eqP!}))
+         -}
 
-infer-sound (send x y P) eq
-  with just (_ , Γ) ← infer P | I[ qe ] ← inspect infer P
-  with just (_ , σ) ← unify (Vec.lookup Γ x) (# Vec.lookup Γ y)
-     | I[ req ]     ← inspect (unify (Vec.lookup Γ x)) (# Vec.lookup Γ y)
+infer-sound (send e f P) eq
+  with just (_ , Γ) ← infer P | I[ eqP ] ← inspect infer P
+  with just t ← inferExpr Γ e | I[ eqe ] ← inspect (inferExpr Γ) e
+  with just s ← inferExpr Γ f | I[ eqf ] ← inspect (inferExpr Γ) f
+  with just (_ , σ) ← unify t (# s)
+     | I[ req ]     ← inspect (unify t) (# s)
   with refl ← eq
-  = send (trans (<|-lookup (sub σ) Γ) (amgu-sound (Vec.lookup Γ x) _ _ req))
-         (<|-lookup (sub σ) Γ)
-         (<|-⊢ (sub σ) (infer-sound P qe))
+  = send {!(trans (<|-lookup (sub σ) Γ) (amgu-sound (Vec.lookup Γ x) _ _ req))!}
+         {!(<|-lookup (sub σ) Γ)!}
+         (<|-⊢ {!sub σ!} (infer-sound P {!eqP!}))
+-}
