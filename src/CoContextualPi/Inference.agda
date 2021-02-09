@@ -79,7 +79,7 @@ inferExpr (e ‵, f) = do _ , Γ₁ , t ← inferExpr e
                         return (_ , fromLeft Γ₁ , fromLeft t ‵× fromRight s)
 
 
-infer : (p : Process n) → Maybe (Σ ℕ (Ctx n))
+infer : (p : Proc n) → Maybe (Σ ℕ (Ctx n))
 infer end          = just (_ , fresh)
 infer (new p)      = do (_ , _ ∷ Γ) ← infer p
                         return (_ , Γ)

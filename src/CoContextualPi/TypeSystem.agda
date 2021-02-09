@@ -22,13 +22,13 @@ data Expr : ℕ → Set where
   inr  : Expr n → Expr n
   _‵,_ : Expr n → Expr n → Expr n
 
-data Process : ℕ → Set where
-  end  : Process n
-  new  : Process (suc n) → Process n
-  comp : Process n → Process n → Process n
-  recv : Expr n → Process (suc n) → Process n
-  send : Expr n → Expr n → Process n → Process n
-  case : Expr n → Process (suc n) → Process (suc n) → Process n
+data Proc : ℕ → Set where
+  end  : Proc n
+  new  : Proc (suc n) → Proc n
+  comp : Proc n → Proc n → Proc n
+  recv : Expr n → Proc (suc n) → Proc n
+  send : Expr n → Expr n → Proc n → Proc n
+  case : Expr n → Proc (suc n) → Proc (suc n) → Proc n
 
 Ctx : ℕ → ℕ → Set
 Ctx n m = Vec (Type m) n
@@ -36,7 +36,7 @@ Ctx n m = Vec (Type m) n
 private
   variable
     Γ : Ctx n l
-    P Q : Process n
+    P Q : Proc n
     e f : Expr n
     t s : Type l
     x y : Fin n
@@ -67,7 +67,7 @@ data _⊢_∶_ : Ctx n m → Expr n → Type m → Set where
        → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
 
 
-data _⊢_ : Ctx n m → Process n → Set where
+data _⊢_ : Ctx n m → Proc n → Set where
   end : Γ ⊢ end
 
   new : (t : Type m)
