@@ -14,6 +14,7 @@ private
     n m l k : ℕ
 
 data Term : ℕ → Set where
+  top  : Term n
   var  : Fin n  → Term n
   fst  : Term n → Term n
   snd  : Term n → Term n
@@ -27,6 +28,7 @@ data Process : ℕ → Set where
   comp : Process n → Process n → Process n
   recv : Term n → Process (suc n) → Process n
   send : Term n → Term n → Process n → Process n
+  case : Term n → Process (suc n) → Process (suc n) → Process n
 
 Ctx : ℕ → ℕ → Set
 Ctx n m = Vec (Type m) n
@@ -43,6 +45,8 @@ _∋_∶_ : Ctx n m → Fin n → Type m → Set
 Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t
 
 data _⊢_∶_ : Ctx n m → Term n → Type m → Set where
+  top : Γ ⊢ top ∶ ‵⊤
+
   var : Γ ∋ x ∶ t
       → Γ ⊢ var x ∶ t
 
@@ -83,6 +87,10 @@ data _⊢_ : Ctx n m → Process n → Set where
        → Γ ⊢ P
        → Γ ⊢ send e f P
 
+  case : Γ ⊢ e ∶ (t ‵+ s)
+       → (t ∷ Γ) ⊢ P
+       → (s ∷ Γ) ⊢ Q
+       → Γ ⊢ (case e P Q)
 
 {-
 instantiate : Type m → Type zero

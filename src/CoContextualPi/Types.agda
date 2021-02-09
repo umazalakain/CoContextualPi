@@ -32,6 +32,7 @@ open import CoContextualPi.Unification Cons Cons-dec as Unification
 
 
 infixr 25 #_
+pattern ‵⊤ = Unification.con Top []
 pattern #_ t = Unification.con Chan (t ∷ [])
 pattern _‵×_ t s = Unification.con Prod (t ∷ s ∷ [])
 pattern _‵+_ t s = Unification.con Sum (t ∷ s ∷ [])
