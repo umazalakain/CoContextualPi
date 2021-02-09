@@ -13,22 +13,22 @@ private
   variable
     n m l k : ℕ
 
-data Term : ℕ → Set where
-  top  : Term n
-  var  : Fin n  → Term n
-  fst  : Term n → Term n
-  snd  : Term n → Term n
-  inl  : Term n → Term n
-  inr  : Term n → Term n
-  _‵,_ : Term n → Term n → Term n
+data Expr : ℕ → Set where
+  top  : Expr n
+  var  : Fin n  → Expr n
+  fst  : Expr n → Expr n
+  snd  : Expr n → Expr n
+  inl  : Expr n → Expr n
+  inr  : Expr n → Expr n
+  _‵,_ : Expr n → Expr n → Expr n
 
 data Process : ℕ → Set where
   end  : Process n
   new  : Process (suc n) → Process n
   comp : Process n → Process n → Process n
-  recv : Term n → Process (suc n) → Process n
-  send : Term n → Term n → Process n → Process n
-  case : Term n → Process (suc n) → Process (suc n) → Process n
+  recv : Expr n → Process (suc n) → Process n
+  send : Expr n → Expr n → Process n → Process n
+  case : Expr n → Process (suc n) → Process (suc n) → Process n
 
 Ctx : ℕ → ℕ → Set
 Ctx n m = Vec (Type m) n
@@ -37,14 +37,14 @@ private
   variable
     Γ : Ctx n l
     P Q : Process n
-    e f : Term n
+    e f : Expr n
     t s : Type l
     x y : Fin n
 
 _∋_∶_ : Ctx n m → Fin n → Type m → Set
 Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t
 
-data _⊢_∶_ : Ctx n m → Term n → Type m → Set where
+data _⊢_∶_ : Ctx n m → Expr n → Type m → Set where
   top : Γ ⊢ top ∶ ‵⊤
 
   var : Γ ∋ x ∶ t
