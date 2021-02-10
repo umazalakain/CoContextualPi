@@ -223,6 +223,7 @@ amgu-sound {one} s t (_ , acc -, z ↦ r) eq
   = amgu-sound ((r for z <|) s) ((r for z <|) t) (_ , acc) steq
 
 
-unify-sound : (s t : UTerm u m) {σ : Subst m l}
-            → unify s t ≡ just (l , σ) → (sub σ <|) s ≡ (sub σ <|) t
-unify-sound s t = amgu-sound s t idSubst
+unify-sound : (s t : UTerm u m) → Maybe (Σ[ l ∈ ℕ ] Σ[ σ ∈ Subst m l ] (sub σ <|) s ≡ (sub σ <|) t)
+unify-sound s t with unify s t | inspect (unify s) t
+unify-sound s t | nothing | _ = nothing
+unify-sound s t | just (_ , σ) | [ eq ] = just (_ , σ , amgu-sound s t idSubst eq)

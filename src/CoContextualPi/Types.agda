@@ -29,6 +29,8 @@ Cons-dec Sum Sum = yes refl
 
 open import CoContextualPi.Unification Cons Cons-dec as Unification
   renaming (Term to Type; UTerm to UType) public
+open import CoContextualPi.Unification.Properties Cons Cons-dec
+  using (unify-sound) public
 
 
 infixr 25 #_
