@@ -70,17 +70,6 @@ unify-⊢ : {xs : Vec (Type m) n} {ys : Vec (Type l) n} (lhs rhs : Vec (Type m) 
 unify-⊢ lhs rhs ⊢P eq with unify lhs rhs
 unify-⊢ lhs rhs ⊢P refl | just (_ , σ) = <|-⊢ (sub σ) ⊢P
 
-{-
-merge-⊢ : (xs : Ctx n l) (ys : Ctx n m) {zs : Ctx n k}
-        → unify-apply ((|> left-inject <|) xs) ((|> right-raise <|) ys) ((|> left-inject <|) xs) ≡ just (k , zs)
-        → unify-apply ((|> left-inject <|) xs) ((|> right-raise <|) ys) ((|> right-raise <|) ys) ≡ just (k , zs)
-merge-⊢ xs ys eq
-  with just σ ← unify ((|> left-inject <|) xs) ((|> right-raise <|) ys)
-     | I[ req ] ← inspect (unify ((|> left-inject <|) xs)) ((|> right-raise <|) ys)
-  rewrite sym (amgu-sound ((|> left-inject <|) xs) ((|> right-raise <|) ys) idSubst req)
-  = eq
-  -}
-
 inferExpr-sound : {Γ : Ctx n l} (e : Expr n) {t : Type l}
                 → inferExpr e ≡ just (! Γ , t)
                 → Γ ⊢ e ∶ t
@@ -91,7 +80,7 @@ inferExpr-sound (fst e) {t} eq
   with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
      | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
   with refl ← eq
-  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 2) )) (inferExpr-sound e qe))
+  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) (inferExpr-sound e qe))
   rewrite unify-sound <[ t ] [ var zero ‵× var (suc (zero {zero})) ]> teq
   = fst ra
 inferExpr-sound (snd e) eq
@@ -99,25 +88,25 @@ inferExpr-sound (snd e) eq
   with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
      | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
   with refl ← eq
-  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 2) )) (inferExpr-sound e qe))
+  with ra ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) (inferExpr-sound e qe))
   rewrite unify-sound <[ t ] [ var zero ‵× var (suc (zero {zero})) ]> teq
   = snd ra
 inferExpr-sound (inl e) eq
   with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
   with refl ← eq
-  = inl (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ 1) )) (inferExpr-sound e qe))
+  = inl (<|-⊢-∶ (|> <<) (inferExpr-sound e qe))
 inferExpr-sound (inr e) eq
   with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
   with refl ← eq
-  = inr (<|-⊢-∶ (|> (Fin.raise 1)) (inferExpr-sound e qe))
+  = inr (<|-⊢-∶ (|> >>) (inferExpr-sound e qe))
 inferExpr-sound (e ‵, f) eq
   with just (! Γ₁ , t) ← inferExpr e | I[ eql ] ← inspect inferExpr e
   with just (! Γ₂ , s) ← inferExpr f | I[ eqr ] ← inspect inferExpr f
   with just (! σ) ← unify <[ Γ₁ ] [ Γ₂ ]>
   | I[ ueq ] ← inspect (unify <[ Γ₁ ]) [ Γ₂ ]>
   with refl ← eq
-  with l ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (inferExpr-sound e eql))
-  with r ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (Fin.raise _)) (inferExpr-sound f eqr))
+  with l ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) (inferExpr-sound e eql))
+  with r ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> >>) (inferExpr-sound f eqr))
   rewrite unify-sound <[ Γ₁ ] [ Γ₂ ]> ueq
   = l ‵, r
 
@@ -137,8 +126,8 @@ infer-sound (comp P Q) eq
   with just (! σ) ← unify <[ Γ₁ ] [ Γ₂ ]>
      | I[ eqU ]   ← inspect (unify <[ Γ₁ ]) [ Γ₂ ]>
   with refl ← eq
-  with l ← <|-⊢ (sub σ) (<|-⊢ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (infer-sound P eqP))
-  with r ← <|-⊢ (sub σ) (<|-⊢ (|> (Fin.raise _)) (infer-sound Q eqQ))
+  with l ← <|-⊢ (sub σ) (<|-⊢ (|> <<) (infer-sound P eqP))
+  with r ← <|-⊢ (sub σ) (<|-⊢ (|> >>) (infer-sound Q eqQ))
   rewrite unify-sound <[ Γ₁ ] [ Γ₂ ]> eqU
   = comp l r
 
@@ -148,8 +137,8 @@ infer-sound (recv e P) eq
   with just (! σ) ← unify <[ c ∷ Γ₁ ] [ # v ∷ Γ₂ ]>
      | I[ eqU ]   ← inspect (unify <[ c ∷ Γ₁ ]) [ # v ∷ Γ₂ ]>
   with refl ← eq
-  with e' ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (inferExpr-sound e eqe))
-  with P' ← <|-⊢ (sub σ) (<|-⊢ (|> (Fin.raise _)) (infer-sound P eqP))
+  with e' ← <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) (inferExpr-sound e eqe))
+  with P' ← <|-⊢ (sub σ) (<|-⊢ (|> >>) (infer-sound P eqP))
   with uS ← unify-sound <[ c ∷ Γ₁ ] [ # v ∷ Γ₂ ]> eqU
   rewrite Vecₚ.∷-injectiveˡ uS
   rewrite Vecₚ.∷-injectiveʳ uS
@@ -164,9 +153,9 @@ infer-sound (send e f P) eq
   with just (! σ₂) ← unify <[ σ₁ <|[ Γ₁ ] ] [ Γ₃ ]>
      | I[ eqU₂ ]   ← inspect (unify <[ σ₁ <|[ Γ₁ ] ]) [ Γ₃ ]>
   with refl ← eq
-  with e' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (inferExpr-sound e eqe))))
-  with f' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> (Fin.raise _)) (inferExpr-sound f eqf))))
-  with P' ← <|-⊢ (sub σ₂) (<|-⊢ (|> (Fin.raise _)) (infer-sound P eqP))
+  with e' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> <<) (inferExpr-sound e eqe))))
+  with f' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> >>) (inferExpr-sound f eqf))))
+  with P' ← <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (infer-sound P eqP))
   rewrite sym (unify-sound <[ σ₁ <|[ Γ₁ ] ] [ Γ₃ ]> eqU₂)
   with uS₁ ← unify-sound <[ c ∷ Γ₁ ] [ # v ∷ Γ₂ ]> eqU₁
   rewrite Vecₚ.∷-injectiveˡ uS₁
@@ -182,9 +171,9 @@ infer-sound (case e P Q) eq
   with just (! σ₂) ← unify <[ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ] [ v ∷ Γ₁ ]>
      | I[ eqU₂ ]   ← inspect (unify <[ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ]) [ v ∷ Γ₁ ]>
   with refl ← eq
-  with e' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> (Fin.raise _)) (inferExpr-sound e eqe))
-  with P' ← <|-⊢ (sub σ₂) (<|-⊢ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (<|-⊢ (sub σ₁) (<|-⊢ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (infer-sound P eqP))))
-  with Q' ← <|-⊢ (sub σ₂) (<|-⊢ (|> (λ i → Fin.inject≤ i (ℕₚ.m≤m+n _ _) )) (<|-⊢ (sub σ₁) (<|-⊢ (|> (Fin.raise _)) (infer-sound Q eqQ))))
+  with e' ← <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> >>) (inferExpr-sound e eqe))
+  with P' ← <|-⊢ (sub σ₂) (<|-⊢ (|> <<) (<|-⊢ (sub σ₁) (<|-⊢ (|> <<) (infer-sound P eqP))))
+  with Q' ← <|-⊢ (sub σ₂) (<|-⊢ (|> <<) (<|-⊢ (sub σ₁) (<|-⊢ (|> >>) (infer-sound Q eqQ))))
   with uS₂ ← unify-sound <[ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ] [ v ∷ Γ₁ ]> eqU₂
   rewrite sym (Vecₚ.∷-injectiveˡ uS₂)
   rewrite sym (Vecₚ.∷-injectiveʳ uS₂)
