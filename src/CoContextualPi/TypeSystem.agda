@@ -91,20 +91,3 @@ data _⊢_ : Ctx n m → Proc n → Set where
        → (t ∷ Γ) ⊢ P
        → (s ∷ Γ) ⊢ Q
        → Γ ⊢ (case e P Q)
-
-{-
-instantiate : Type m → Type zero
-instantiate = (λ _ → top) <|_
-
-
-instantiate-∋ : (Γ : Ctx n m) → Γ ∋ x ∶ t → Vec.map instantiate Γ ∋ x ∶ (instantiate t)
-instantiate-∋ Γ refl = Vecₚ.lookup-map _ instantiate Γ
-
-
-instantiate-⊢ : {Γ : Ctx n m} → Γ ⊢ P → Vec.map instantiate Γ ⊢ P
-instantiate-⊢ end = end
-instantiate-⊢ (new t p) = new (instantiate t) (instantiate-⊢ p)
-instantiate-⊢ (comp p q) = comp (instantiate-⊢ p) (instantiate-⊢ q)
-instantiate-⊢ {Γ = Γ} (recv x p) = recv (instantiate-∋ Γ x) (instantiate-⊢ p)
-instantiate-⊢ {Γ = Γ} (send x y p) = send (instantiate-∋ Γ x) (instantiate-∋ Γ y) (instantiate-⊢ p)
--}

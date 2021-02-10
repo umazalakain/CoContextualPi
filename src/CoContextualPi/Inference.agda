@@ -93,22 +93,22 @@ _<|[_] σ = (sub σ) <| ∘ <[_]
 
 
 inferExpr : (e : Expr n) → Maybe (Σ[ m ∈ ℕ ] Σ[ t ∈ Type m ] Σ[ Γ ∈ Ctx n m ] Γ ⊢ e ∶ t)
-inferExpr top     = return (! ‵⊤ , fresh , top)
-inferExpr (var x) = return (! Vec.lookup fresh x , fresh , var refl)
-inferExpr (fst e) = do ! t , Γ₁ , ⊢e ← inferExpr e
-                       let shape = var zero ‵× var (suc (zero {zero}))
-                       ! σ , sound ← <[ t ] == [ shape ]>
-                       let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
-                       return (! [ var zero ]|> σ , σ <|[ Γ₁ ] , fst (subst (_ ⊢ _ ∶_) sound ⊢e'))
-inferExpr (snd e) = do ! t , Γ₁ , ⊢e ← inferExpr e
-                       let shape = var zero ‵× var (suc (zero {zero}))
-                       ! σ , sound ← <[ t ] == [ shape ]>
-                       let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
-                       return (! [ var (suc zero) ]|> σ , σ <|[ Γ₁ ] , snd (subst (_ ⊢ _ ∶_) sound ⊢e'))
-inferExpr (inl e) = do ! t , Γ₁ , ⊢e ← inferExpr e
-                       let ⊢e' = <|-⊢-∶ (|> <<) ⊢e
-                       return (! <[ t ] ‵+ [ var (zero {zero}) ]> , <[ Γ₁ ] , inl ⊢e')
-inferExpr (inr e) = do ! t , Γ₁ , ⊢e ← inferExpr e
+inferExpr top      = return (! ‵⊤ , fresh , top)
+inferExpr (var x)  = return (! Vec.lookup fresh x , fresh , var refl)
+inferExpr (fst e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
+                        let shape = var zero ‵× var (suc (zero {zero}))
+                        ! σ , sound ← <[ t ] == [ shape ]>
+                        let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
+                        return (! [ var zero ]|> σ , σ <|[ Γ₁ ] , fst (subst (_ ⊢ _ ∶_) sound ⊢e'))
+inferExpr (snd e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
+                        let shape = var zero ‵× var (suc (zero {zero}))
+                        ! σ , sound ← <[ t ] == [ shape ]>
+                        let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
+                        return (! [ var (suc zero) ]|> σ , σ <|[ Γ₁ ] , snd (subst (_ ⊢ _ ∶_) sound ⊢e'))
+inferExpr (inl e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
+                        let ⊢e' = <|-⊢-∶ (|> <<) ⊢e
+                        return (! <[ t ] ‵+ [ var (zero {zero}) ]> , <[ Γ₁ ] , inl ⊢e')
+inferExpr (inr e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
                        let ⊢e' = <|-⊢-∶ (|> >>) ⊢e
                        return (! <[ var (zero {zero}) ] ‵+ [_]> {m = 1} t , [ Γ₁ ]> , inr ⊢e')
 inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
@@ -121,8 +121,8 @@ inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
 
 
 infer : (p : Proc n) → Maybe (Σ[ m ∈ ℕ ] Σ[ Γ ∈ Ctx n m ] Γ ⊢ p)
-infer end           = return (! fresh , end)
-infer (new p)       = do ! t ∷ Γ , ⊢p ← infer p
+infer end          = return (! fresh , end)
+infer (new p)      = do ! t ∷ Γ , ⊢p ← infer p
                          return (! Γ , new t ⊢p)
 infer (comp p q)   = do ! Γ₁ , ⊢p ← infer p
                         ! Γ₂ , ⊢q ← infer q
