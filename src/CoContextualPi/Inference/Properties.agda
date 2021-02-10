@@ -71,12 +71,12 @@ unify-⊢ lhs rhs ⊢P eq with unify lhs rhs
 unify-⊢ lhs rhs ⊢P refl | just (_ , σ) = <|-⊢ (sub σ) ⊢P
 
 inferExpr-sound : {Γ : Ctx n l} (e : Expr n) {t : Type l}
-                → inferExpr e ≡ just (! Γ , t)
+                → inferExpr e ≡ just (! t , Γ)
                 → Γ ⊢ e ∶ t
 inferExpr-sound top refl = top
 inferExpr-sound (var x) refl = var refl
 inferExpr-sound (fst e) {t} eq
-  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with just (! t , Γ) ← inferExpr e | I[ qe ] ← inspect inferExpr e
   with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
      | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
   with refl ← eq
@@ -84,7 +84,7 @@ inferExpr-sound (fst e) {t} eq
   rewrite unify-sound <[ t ] [ var zero ‵× var (suc (zero {zero})) ]> teq
   = fst ra
 inferExpr-sound (snd e) eq
-  with just (! Γ , t) ← inferExpr e | I[ qe ] ← inspect inferExpr e
+  with just (! t , Γ) ← inferExpr e | I[ qe ] ← inspect inferExpr e
   with just (! σ) ← unify <[ t ] [ var zero ‵× var (suc (zero {zero})) ]>
      | I[ teq ] ← inspect (unify <[ t ]) [ var zero ‵× var (suc (zero {zero})) ]>
   with refl ← eq
@@ -100,8 +100,8 @@ inferExpr-sound (inr e) eq
   with refl ← eq
   = inr (<|-⊢-∶ (|> >>) (inferExpr-sound e qe))
 inferExpr-sound (e ‵, f) eq
-  with just (! Γ₁ , t) ← inferExpr e | I[ eql ] ← inspect inferExpr e
-  with just (! Γ₂ , s) ← inferExpr f | I[ eqr ] ← inspect inferExpr f
+  with just (! t , Γ₁) ← inferExpr e | I[ eql ] ← inspect inferExpr e
+  with just (! s , Γ₂) ← inferExpr f | I[ eqr ] ← inspect inferExpr f
   with just (! σ) ← unify <[ Γ₁ ] [ Γ₂ ]>
   | I[ ueq ] ← inspect (unify <[ Γ₁ ]) [ Γ₂ ]>
   with refl ← eq
@@ -132,7 +132,7 @@ infer-sound (comp P Q) eq
   = comp l r
 
 infer-sound (recv e P) eq
-  with just (! Γ₁ , c) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
+  with just (! c , Γ₁) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
   with just (! v ∷ Γ₂) ← infer P | I[ eqP ] ← inspect infer P
   with just (! σ) ← unify <[ c ∷ Γ₁ ] [ # v ∷ Γ₂ ]>
      | I[ eqU ]   ← inspect (unify <[ c ∷ Γ₁ ]) [ # v ∷ Γ₂ ]>
@@ -145,8 +145,8 @@ infer-sound (recv e P) eq
   = recv e' P'
 
 infer-sound (send e f P) eq
-  with just (! Γ₁ , c) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
-  with just (! Γ₂ , v) ← inferExpr f | I[ eqf ] ← inspect inferExpr f
+  with just (! c , Γ₁) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
+  with just (! v , Γ₂) ← inferExpr f | I[ eqf ] ← inspect inferExpr f
   with just (! Γ₃) ← infer P | I[ eqP ] ← inspect infer P
   with just (! σ₁) ← unify <[ c ∷ Γ₁ ] [ # v ∷ Γ₂ ]>
      | I[ eqU₁ ]   ← inspect (unify <[ c ∷ Γ₁ ]) [ # v ∷ Γ₂ ]>
@@ -163,7 +163,7 @@ infer-sound (send e f P) eq
   = send e' f' P'
 
 infer-sound (case e P Q) eq
-  with just (! Γ₁ , v) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
+  with just (! v , Γ₁) ← inferExpr e | I[ eqe ] ← inspect inferExpr e
   with just (! l ∷ Γ₂) ← infer P | I[ eqP ] ← inspect infer P
   with just (! r ∷ Γ₃) ← infer Q | I[ eqQ ] ← inspect infer Q
   with just (! σ₁) ← unify <[ Γ₂ ] [ Γ₃ ]>
