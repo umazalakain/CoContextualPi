@@ -109,8 +109,8 @@ inferExpr (inl e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
                         let ⊢e' = <|-⊢-∶ (|> <<) ⊢e
                         return (! <[ t ] ‵+ [ var (zero {zero}) ]> , <[ Γ₁ ] , inl ⊢e')
 inferExpr (inr e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
-                       let ⊢e' = <|-⊢-∶ (|> >>) ⊢e
-                       return (! <[ var (zero {zero}) ] ‵+ [_]> {m = 1} t , [ Γ₁ ]> , inr ⊢e')
+                        let ⊢e' = <|-⊢-∶ (|> >>) ⊢e
+                        return (! <[ var (zero {zero}) ] ‵+ [_]> {m = 1} t , [ Γ₁ ]> , inr ⊢e')
 inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
                         ! s , Γ₂ , ⊢f ← inferExpr f
                         ! σ , sound ← <[ Γ₁ ] == [ Γ₂ ]>
@@ -123,7 +123,7 @@ inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
 infer : (p : Proc n) → Maybe (Σ[ m ∈ ℕ ] Σ[ Γ ∈ Ctx n m ] Γ ⊢ p)
 infer end          = return (! fresh , end)
 infer (new p)      = do ! t ∷ Γ , ⊢p ← infer p
-                         return (! Γ , new t ⊢p)
+                        return (! Γ , new t ⊢p)
 infer (comp p q)   = do ! Γ₁ , ⊢p ← infer p
                         ! Γ₂ , ⊢q ← infer q
                         ! σ , sound ← <[ Γ₁ ] == [ Γ₂ ]>

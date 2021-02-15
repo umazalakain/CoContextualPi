@@ -25,7 +25,7 @@ import Data.Nat.Properties as ℕₚ
 import Data.Vec.Properties as Vecₚ
 
 
-module CoContextualPi.Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
+module CoContextualPi.StrictUnification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
 
 private
   -- Help ourselves to some goodies

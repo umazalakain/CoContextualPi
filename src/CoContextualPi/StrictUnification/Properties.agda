@@ -15,9 +15,9 @@ import Data.Maybe.Properties as Maybeₚ
 import Data.Product.Properties as Productₚ
 import Data.Vec.Properties as Vecₚ
 
-module CoContextualPi.Unification.Properties (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
+module CoContextualPi.StrictUnification.Properties (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
 
-open import CoContextualPi.Unification Name decEqName
+open import CoContextualPi.StrictUnification Name decEqName
 
 private
   variable
