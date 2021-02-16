@@ -44,8 +44,11 @@ private
 
 
 infix 25 _for_
-infixl 20 _<|
+infixl 20 _<|_
 infixr 20 |>
+
+infixr 2 !_
+pattern !_ t = _ , t
 
 KindCtx : Set
 KindCtx = List Kind
@@ -55,20 +58,18 @@ private
     n m l : ℕ
     i : Fin n
     k k' : Kind
-    ks ks' : List Kind
-    γ δ ξ : KindCtx
-
-data Insertion (k : Kind) : KindCtx → KindCtx → Set where
-  zero : Insertion k γ (k ∷ γ)
-  suc : Insertion k γ δ → Insertion k (k' ∷ γ) (k' ∷ δ)
+    ks ks' γ δ ξ : KindCtx
 
 data Univ : Set where
   one : Kind → Univ
   all : List Kind → Univ
 
-data _∋_ : KindCtx → Kind → Set where
-  zero : (k ∷ γ) ∋ k
-  suc  : γ ∋ k → (k' ∷ γ) ∋ k
+data _∋_▹_ : KindCtx → Kind → KindCtx → Set where
+  zero : (k ∷ γ) ∋ k ▹ γ
+  suc  : γ ∋ k ▹ δ → (k' ∷ γ) ∋ k ▹ (k' ∷ δ)
+
+_∋_ : KindCtx → Kind → Set
+γ ∋ x = ∃ (γ ∋ x ▹_)
 
 data _⊢_ (γ : KindCtx) : Kind → Set where
   var : γ ∋ k → γ ⊢ k
@@ -87,7 +88,7 @@ private variable u : Univ
 var-injective : {x : γ ∋ k} {y : γ ∋ k} → var x ≡ var y → x ≡ y
 var-injective refl = refl
 
-suc-injective : {x : γ ∋ k} {y : γ ∋ k} → _≡_ {A = (k' ∷ γ) ∋ k} (suc x) (suc y) → x ≡ y
+suc-injective : {x : γ ∋ k} {y : γ ∋ k} → _≡_ {A = _ ∋ _} (Product.map (k' ∷_) suc x) (Product.map (k' ∷_) suc y) → x ≡ y
 suc-injective refl = refl
 
 kind-injective : {nx : Con k ks} {ny : Con k ks'} {asx : All (γ ⊢_) ks} {asy : All (γ ⊢_) ks'}
@@ -101,10 +102,10 @@ args-injective : {nx ny : Con k ks} {asx asy : All (γ ⊢_) ks} → con nx asx 
 args-injective refl = refl
 
 decEq-∋ : (x y : γ ∋ k) → Dec (x ≡ y)
-decEq-∋ zero zero = yes refl
-decEq-∋ zero (suc y) = no (λ ())
-decEq-∋ (suc x) zero = no (λ ())
-decEq-∋ (suc x) (suc y) = Dec.map′ (cong suc) suc-injective (decEq-∋ x y)
+decEq-∋ (! zero) (! zero) = yes refl
+decEq-∋ (! zero) (! suc y) = no (λ ())
+decEq-∋ (! suc x) (! zero) = no (λ ())
+decEq-∋ (! suc x) (! suc y) = Dec.map′ (cong (Product.map (_ ∷_) suc)) (suc-injective) (decEq-∋ (! x) (! y))
 
 decEq-⊢ : (x y : γ ⊢' u) → Dec (x ≡ y)
 decEq-⊢ {u = one _} (var x) (con s ts) = no λ ()
@@ -146,23 +147,23 @@ f <> g = f <|_ ∘ g
 --
 
 -- A renaming (thin x) pushes up everithing x and above
-thin : Insertion k' γ δ → γ ∋ k → δ ∋ k
-thin zero y = suc y
-thin (suc x) zero = zero
-thin (suc x) (suc y) = suc (thin x y)
+thin : δ ∋ k' ▹ γ → γ ∋ k → δ ∋ k
+thin zero (! y) = ! suc y
+thin (suc x) (! zero) = ! zero
+thin (suc x) (! suc y) = Product.map _ suc (thin x (! y))
 
 -- A renaming (thick x) tries to lower everything above x
 -- Only succeeds if x itself is not present
-thick : Insertion k' δ γ → γ ∋ k → (δ ∋ k) ⊎ (k ≡ k')
-thick zero zero = inj₂ refl
-thick zero (suc y) = inj₁ y
-thick (suc x) zero = inj₁ zero
-thick (suc x) (suc y) = Sum.map₁ suc (thick x y)
+thick : γ ∋ k' ▹ δ → γ ∋ k → (δ ∋ k) ⊎ (k ≡ k')
+thick zero (! zero) = inj₂ refl
+thick zero (! suc y) = inj₁ (! y)
+thick (suc x) (! zero) = inj₁ (! zero)
+thick (suc x) (! suc y) = Sum.map₁ (Product.map _ suc) (thick x (! y))
 
 -- Substitution of one particular variable
 --
 
-_for_ : δ ⊢ k → Insertion k δ γ → γ ∋ k' → δ ⊢ k'
+_for_ : δ ⊢ k → γ ∋ k ▹ δ → γ ∋ k' → δ ⊢ k'
 (t for x) y = Sum.[ var , (λ {refl → t}) ] (thick x y)
 
 -- Defunctionalize sequences of substitutions
@@ -170,13 +171,13 @@ _for_ : δ ⊢ k → Insertion k δ γ → γ ∋ k' → δ ⊢ k'
 
 data Subst : KindCtx → KindCtx → Set where
   [] : Subst γ γ
-  _-,_↦_ : Subst γ δ → Insertion k γ ξ → γ ⊢ k → Subst ξ δ
+  _-,_↦_ : Subst γ δ → ξ ∋ k ▹ γ → γ ⊢ k → Subst ξ δ
 
 
 idSubst : ∃ (Subst γ)
 idSubst = _ , []
 
-singleSubst : Insertion k γ δ → γ ⊢ k → ∃ (Subst δ)
+singleSubst : δ ∋ k ▹ γ → γ ⊢ k → ∃ (Subst δ)
 singleSubst i t = _ , ([] -, i ↦ t)
 
 _++_ : Subst γ δ → Subst ξ γ → Subst ξ δ
@@ -188,14 +189,14 @@ sub [] = var
 sub (σs -, x ↦ t) = sub σs <> (t for x)
 
 
-insertion : γ ∋ k → ∃ (Insertion k γ)
-insertion zero = _ , zero
-insertion (suc x) = Product.map (_ ∷_) suc (insertion x)
+-- insertion : γ ∋ k → ∃ (Insertion k γ)
+-- insertion zero = _ , zero
+-- insertion (suc x) = Product.map (_ ∷_) suc (insertion x)
 
 -- Occurs check, lowers the term if the variable is not present
 --
 
-check : Insertion k' γ δ → δ ⊢' u → Maybe (γ ⊢' u)
+check : δ ∋ k' ▹ γ → δ ⊢' u → Maybe (γ ⊢' u)
 check {u = one _} i (var x) = Sum.[ just ∘ var , (λ _ → nothing) ] (thick i x)
 check {u = one _} i (con n as) = con n <$> check i as
 check {u = all _} i [] = just []
@@ -206,23 +207,20 @@ check {u = all _} i (x ∷ xs) = _∷_ <$> check i x ⊛ check i xs
 --
 
 -- Substitute variable x with variable y
-flexFlex : Insertion k γ δ → δ ∋ k → ∃ (Subst δ)
+flexFlex : δ ∋ k ▹ γ → δ ∋ k → ∃ (Subst δ)
 flexFlex x y = Sum.[ singleSubst x ∘ var , (λ _ → idSubst) ] (thick x y)
 
-flexFlex' : δ ∋ k → δ ∋ k → ∃ (Subst δ)
-flexFlex' x y = let _ , ins = insertion x in Sum.[ singleSubst ins ∘ var , (λ _ → idSubst) ] (thick ins y)
-
 -- Substitute variable x with term t
-flexRigid : Insertion k γ δ → δ ⊢ k → Maybe (∃ (Subst δ))
+flexRigid : δ ∋ k ▹ γ → δ ⊢ k → Maybe (∃ (Subst δ))
 flexRigid x t = singleSubst x <$> check x t
 
 
 amgu : γ ⊢' u → γ ⊢' u → ∃ (Subst γ) → Maybe(∃ (Subst γ))
-amgu {u = all _} [] [] acc              = just acc
-amgu {u = all _} (x ∷ xs) (y ∷ ys) acc  = amgu x y acc >>= amgu xs ys
-amgu {u = one _} (var x) (var y) (_ , []) = let _ , ins = insertion x in just (flexFlex {!ins!} y)
-amgu {u = one _} (var x) t (_ , [])       = flexRigid {!x!} t
-amgu {u = one _} s (var x) (_ , [])       = flexRigid {!!} s
+amgu {u = all _} [] [] acc                    = just acc
+amgu {u = all _} (x ∷ xs) (y ∷ ys) acc        = amgu x y acc >>= amgu xs ys
+amgu {u = one _} (var (! x)) (var y) (_ , []) = just (flexFlex x y)
+amgu {u = one _} (var (! x)) t (_ , [])       = flexRigid x t
+amgu {u = one _} s (var (! x)) (_ , [])       = flexRigid x s
 amgu {u = one _} (con {ks = kx} nx asx) (con {ks = ky} ny asy) acc
     with Listₚ.≡-dec decEqKind kx ky
 ... | false because _ = nothing
