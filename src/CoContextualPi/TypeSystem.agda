@@ -1,4 +1,4 @@
-open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality as ≡ using (_≡_; refl; _≢_)
 
 open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_; proj₁; proj₂)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
@@ -30,30 +30,32 @@ data Proc : ℕ → Set where
   send : Expr n → Expr n → Proc n → Proc n
   case : Expr n → Proc (suc n) → Proc (suc n) → Proc n
 
-Ctx : ℕ → ℕ → Set
-Ctx n m = Vec (Type m) n
 
 private
   variable
-    Γ : Ctx n l
+    γ : KindCtx
+    Γ Δ Ξ Ω Ψ : Ctx n γ
     P Q : Proc n
     e f : Expr n
-    t s : Type l
+    t s : Type γ
     x y : Fin n
 
-_∋_∶_ : Ctx n m → Fin n → Type m → Set
-Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t
+_∋_∶_ : Ctx n γ → Fin n → Type γ → Set
+Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t × (∀ i → i ≢ x → un₁ (Vec.lookup Γ i))
 
-data _⊢_∶_ : Ctx n m → Expr n → Type m → Set where
-  top : Γ ⊢ top ∶ ‵⊤
+data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
+  top : un₂ Γ
+      → Γ ⊢ top ∶ ‵⊤
 
   var : Γ ∋ x ∶ t
       → Γ ⊢ var x ∶ t
 
-  fst : Γ ⊢ e ∶ (t ‵× s)
+  fst : un₁ s
+      → Γ ⊢ e ∶ (t ‵× s)
       → Γ ⊢ fst e ∶ t
 
-  snd : Γ ⊢ e ∶ (t ‵× s)
+  snd : un₁ t
+      → Γ ⊢ e ∶ (t ‵× s)
       → Γ ⊢ snd e ∶ s
 
   inl : Γ ⊢ e ∶ t
@@ -62,32 +64,39 @@ data _⊢_∶_ : Ctx n m → Expr n → Type m → Set where
   inr : Γ ⊢ e ∶ s
       → Γ ⊢ inr e ∶ (t ‵+ s)
 
-  _‵,_ : Γ ⊢ e ∶ s
-       → Γ ⊢ f ∶ t
+  _‵,_ : Γ ≔ Δ +₂ Ξ
+       → Δ ⊢ e ∶ s
+       → Ξ ⊢ f ∶ t
        → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
 
 
-data _⊢_ : Ctx n m → Proc n → Set where
-  end : Γ ⊢ end
+data _⊢_ : Ctx n γ → Proc n → Set where
+  end : un₂ Γ
+      → Γ ⊢ end
 
-  new : (t : Type m)
+  new : (t : Type γ)
       → (t ∷ Γ) ⊢ P
       → Γ ⊢ new P
 
-  comp : Γ ⊢ P
-       → Γ ⊢ Q
-       → Γ ⊢ (comp P Q)
+  comp : Γ ≔ Δ +₂ Ξ
+       → Δ ⊢ P
+       → Ξ ⊢ Q
+       → Γ ⊢ comp P Q
 
-  recv : Γ ⊢ e ∶ # t
-       → (t ∷ Γ) ⊢ P
+  recv : Γ ≔ Δ +₂ Ξ
+       → Δ ⊢ e ∶ # 1∙ 0∙ t
+       → (t ∷ Ξ) ⊢ P
        → Γ ⊢ recv e P
 
-  send : Γ ⊢ e ∶ # t
-       → Γ ⊢ f ∶ t
-       → Γ ⊢ P
+  send : Γ ≔ Δ +₂ Ξ
+       → Ξ ≔ Ω +₂ Ψ
+       → Δ ⊢ e ∶ # 0∙ 1∙ t
+       → Ω ⊢ f ∶ t
+       → Ψ ⊢ P
        → Γ ⊢ send e f P
 
-  case : Γ ⊢ e ∶ (t ‵+ s)
-       → (t ∷ Γ) ⊢ P
-       → (s ∷ Γ) ⊢ Q
+  case : Γ ≔ Δ +₂ Ξ
+       → Δ ⊢ e ∶ (t ‵+ s)
+       → (t ∷ Ξ) ⊢ P
+       → (s ∷ Ξ) ⊢ Q
        → Γ ⊢ (case e P Q)

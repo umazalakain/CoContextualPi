@@ -55,16 +55,16 @@ decEqCons omega one = no (λ ())
 decEqCons omega omega = yes refl
 
 open import CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons as Unification
-  using (KindCtx; Univ; _⊢_; _⊢'_)
+  using (KindCtx) public
 open import CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
   using (unify-sound) public
 
 
-Multiplicity : KindCtx → Set
-Multiplicity γ = γ ⊢ multiplicity
+Usage : KindCtx → Set
+Usage γ = γ Unification.⊢ multiplicity
 
 Type : KindCtx → Set
-Type γ = γ ⊢ type
+Type γ = γ Unification.⊢ type
 
 infixr 25 #
 pattern ‵⊤ = Unification.con top []
@@ -75,23 +75,22 @@ pattern 0∙ = Unification.con zero []
 pattern 1∙ = Unification.con one []
 pattern ω∙ = Unification.con omega []
 
-{-
 private
   variable
-    u : Univ
-    x y : Usage
-    a b c t lz lx ly rz rx ry : Type m
+    γ : KindCtx
+    x y iz ix iy oz ox oy : Usage γ
+    a b c t lz lx ly rz rx ry : Type γ
 
 -- x ≔ y + z is not necessarily unique
-data _≔_+₀_ : Usage → Usage → Usage → Set where
+data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
   0-left  : y  ≔ 0∙ +₀ y
   0-right : x  ≔ x  +₀ 0∙
   ω-right : ω∙ ≔ x  +₀ ω∙
   ω-left  : ω∙ ≔ ω∙ +₀ y
   1-both  : ω∙ ≔ 1∙ +₀ 1∙
 
-data _≔_+₁_ {m} : Type m → Type m → Type m → Set where
-  var   : ∀ {x y z} → var x ≔ var y +₁ var z
+data _≔_+₁_ {γ} : Type γ → Type γ → Type γ → Set where
+  var   : ∀ {x y z} → Unification.var x ≔ Unification.var y +₁ Unification.var z
   top   : ‵⊤ ≔ ‵⊤ +₁ ‵⊤
   chan  : iz ≔ ix +₀ iy → oz ≔ ox +₀ oy
         → # iz oz t ≔ # ix ox t +₁ # iy oy t
@@ -100,20 +99,19 @@ data _≔_+₁_ {m} : Type m → Type m → Type m → Set where
   sum   : lz ≔ lx +₁ ly → rz ≔ rx +₁ ry
         → (lz ‵+ rz) ≔ (lx ‵+ rx) +₁ (ly ‵+ ry)
 
-un₁ : Type m → Set
+un₁ : Type γ → Set
 un₁ t = t ≔ t +₁ t
 
-Ctx : ℕ → ℕ → Set
-Ctx n m = Vec (Type m) n
+Ctx : ℕ → KindCtx → Set
+Ctx n γ = Vec (Type γ) n
 
 private
   variable
-    A B C : Ctx n m
+    A B C : Ctx n γ
 
-data _≔_+₂_ {m} : Ctx n m → Ctx n m → Ctx n m → Set where
+data _≔_+₂_ {γ} : Ctx n γ → Ctx n γ → Ctx n γ → Set where
   [] : [] ≔ [] +₂ []
   _∷_ : (a ≔ b +₁ c) → A ≔ B +₂ C → (a ∷ A) ≔ (b ∷ B) +₂ (c ∷ C)
 
-un₂ : Ctx n m → Set
+un₂ : Ctx n γ → Set
 un₂ Γ = Γ ≔ Γ +₂ Γ
--}
