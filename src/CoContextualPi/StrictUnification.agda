@@ -163,8 +163,11 @@ thick (suc x) (! suc y) = Sum.map₁ (Product.map _ suc) (thick x (! y))
 -- Substitution of one particular variable
 --
 
+kind-subst : δ ⊢ k → k' ≡ k → δ ⊢ k'
+kind-subst x refl = x
+
 _for_ : δ ⊢ k → γ ∋ k ▹ δ → γ ∋ k' → δ ⊢ k'
-(t for x) y = Sum.[ var , (λ {refl → t}) ] (thick x y)
+(t for x) y = Sum.[ var , kind-subst t ] (thick x y)
 
 -- Defunctionalize sequences of substitutions
 --
@@ -188,10 +191,6 @@ sub : Subst γ δ → (γ ∋ k → δ ⊢ k)
 sub [] = var
 sub (σs -, x ↦ t) = sub σs <> (t for x)
 
-
--- insertion : γ ∋ k → ∃ (Insertion k γ)
--- insertion zero = _ , zero
--- insertion (suc x) = Product.map (_ ∷_) suc (insertion x)
 
 -- Occurs check, lowers the term if the variable is not present
 --
@@ -218,6 +217,9 @@ flexRigid x t = singleSubst x <$> check x t
 ∋-length zero = refl
 ∋-length (suc x) = cong suc (∋-length x)
 
+dec-length : γ ∋ k ▹ δ → List.length γ ≡ suc n → List.length δ ≡ n
+dec-length {_ ∷ _} x eq = ℕₚ.suc-injective (trans (∋-length x) eq)
+
 amgu : List.length γ ≡ n → γ ⊢' u → γ ⊢' u → ∃ (Subst γ) → Maybe(∃ (Subst γ))
 amgu {u = all _} eq [] [] acc                    = just acc
 amgu {u = all _} eq (x ∷ xs) (y ∷ ys) acc        = amgu eq x y acc >>= amgu eq xs ys
@@ -232,8 +234,7 @@ amgu {u = one _} eq (con {ks = kx} nx asx) (con {ks = ky} ny asy) acc
 ...            | true = amgu eq asx asy acc
 amgu {[]} {u = one _} refl s t (! (acc -, () ↦ r))
 amgu {n = suc n} {u = one _} eq s t (! (acc -, z ↦ r)) =
-  let eq = ℕₚ.suc-injective (trans (∋-length z) eq) in
-  Product.map₂ (_-, z ↦ r) <$> amgu eq ((r for z) <| s) ((r for z) <| t) (_ , acc)
+  Product.map₂ (_-, z ↦ r) <$> amgu (dec-length z eq) ((r for z) <| s) ((r for z) <| t) (_ , acc)
 
 
 unify : γ ⊢' u → γ ⊢' u → Maybe(∃ (Subst γ))

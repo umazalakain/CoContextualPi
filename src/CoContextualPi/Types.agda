@@ -5,7 +5,9 @@ open import Function using (_∘_)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec.Base as Vec using (Vec; []; _∷_)
+open import Data.Product as Product using (_,_)
 open import Data.List.Base as List using (List; []; _∷_)
+open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
 
 
 module CoContextualPi.Types where
@@ -54,14 +56,14 @@ decEqCons omega omega = yes refl
 
 open import CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons as Unification
   using (KindCtx; Univ; _⊢_; _⊢'_)
--- open import CoContextualPi.StrictUnification.Properties Cons decEqCons
---   using (unify-sound) public
+open import CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
+  using (unify-sound) public
 
 
-Multiplicity : KindCtx n → Set
+Multiplicity : KindCtx → Set
 Multiplicity γ = γ ⊢ multiplicity
 
-Type : KindCtx n → Set
+Type : KindCtx → Set
 Type γ = γ ⊢ type
 
 infixr 25 #
