@@ -7,7 +7,7 @@
 open import Function using (_∘_; id)
 open import Relation.Nullary using (Dec; yes; no; _because_; does)
 open import Relation.Nullary.Decidable as Dec using ()
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; trans)
 open import Category.Functor
 open import Category.Monad
 open import Category.Applicative
@@ -214,24 +214,27 @@ flexFlex x y = Sum.[ singleSubst x ∘ var , (λ _ → idSubst) ] (thick x y)
 flexRigid : δ ∋ k ▹ γ → δ ⊢ k → Maybe (∃ (Subst δ))
 flexRigid x t = singleSubst x <$> check x t
 
+∋-length : γ ∋ k ▹ δ → suc (List.length δ) ≡ List.length γ
+∋-length zero = refl
+∋-length (suc x) = cong suc (∋-length x)
 
-amgu : γ ⊢' u → γ ⊢' u → ∃ (Subst γ) → Maybe(∃ (Subst γ))
-amgu {u = all _} [] [] acc                    = just acc
-amgu {u = all _} (x ∷ xs) (y ∷ ys) acc        = amgu x y acc >>= amgu xs ys
-amgu {u = one _} (var (! x)) (var y) (_ , []) = just (flexFlex x y)
-amgu {u = one _} (var (! x)) t (_ , [])       = flexRigid x t
-amgu {u = one _} s (var (! x)) (_ , [])       = flexRigid x s
-amgu {u = one _} (con {ks = kx} nx asx) (con {ks = ky} ny asy) acc
+amgu : List.length γ ≡ n → γ ⊢' u → γ ⊢' u → ∃ (Subst γ) → Maybe(∃ (Subst γ))
+amgu {u = all _} eq [] [] acc                    = just acc
+amgu {u = all _} eq (x ∷ xs) (y ∷ ys) acc        = amgu eq x y acc >>= amgu eq xs ys
+amgu {u = one _} eq (var (! x)) (var y) (_ , []) = just (flexFlex x y)
+amgu {u = one _} eq (var (! x)) t (_ , [])       = flexRigid x t
+amgu {u = one _} eq s (var (! x)) (_ , [])       = flexRigid x s
+amgu {u = one _} eq (con {ks = kx} nx asx) (con {ks = ky} ny asy) acc
     with Listₚ.≡-dec decEqKind kx ky
 ... | false because _ = nothing
 ... | yes refl with does (decEqCon nx ny)
 ...            | false = nothing
-...            | true = amgu asx asy acc
-amgu {u = one _} s t (_ , acc -, z ↦ r) =
-  Product.map₂ (_-, z ↦ r) <$> amgu ((r for z) <| s) ((r for z) <| t) (_ , acc)
+...            | true = amgu eq asx asy acc
+amgu {[]} {u = one _} refl s t (! (acc -, () ↦ r))
+amgu {n = suc n} {u = one _} eq s t (! (acc -, z ↦ r)) =
+  let eq = ℕₚ.suc-injective (trans (∋-length z) eq) in
+  Product.map₂ (_-, z ↦ r) <$> amgu eq ((r for z) <| s) ((r for z) <| t) (_ , acc)
 
 
-{-
-unify : UTerm u m → UTerm u m → Maybe(∃ (Subst m))
-unify s t = amgu s t idSubst
--}
+unify : γ ⊢' u → γ ⊢' u → Maybe(∃ (Subst γ))
+unify s t = amgu refl s t idSubst
