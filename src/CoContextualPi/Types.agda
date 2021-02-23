@@ -54,11 +54,11 @@ decEqCons omega zero = no (λ ())
 decEqCons omega one = no (λ ())
 decEqCons omega omega = yes refl
 
-open import CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons as Unification
-  using (KindCtx) public
-open import CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
-  using (unify-sound) public
-
+import CoContextualPi.StrictUnification
+module Unification = CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons
+open Unification using (KindCtx) public
+import CoContextualPi.StrictUnification.Properties
+module Unificationₚ = CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
 
 Usage : KindCtx → Set
 Usage γ = γ Unification.⊢ multiplicity
@@ -83,11 +83,10 @@ private
 
 -- x ≔ y + z is not necessarily unique
 data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
-  0-left  : y  ≔ 0∙ +₀ y
-  0-right : x  ≔ x  +₀ 0∙
-  ω-right : ω∙ ≔ x  +₀ ω∙
-  ω-left  : ω∙ ≔ ω∙ +₀ y
-  1-both  : ω∙ ≔ 1∙ +₀ 1∙
+  erased  : 0∙ ≔ 0∙ +₀ 0∙
+  1-left  : 1∙ ≔ 1∙ +₀ 0∙
+  1-right : 1∙ ≔ 0∙ +₀ 1∙
+  shared  : ω∙ ≔ x  +₀ y
 
 data _≔_+₁_ {γ} : Type γ → Type γ → Type γ → Set where
   var   : ∀ {x y z} → Unification.var x ≔ Unification.var y +₁ Unification.var z
