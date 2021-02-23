@@ -40,8 +40,13 @@ private
     t s : Type γ
     x y : Fin n
 
-_∋_∶_ : Ctx n γ → Fin n → Type γ → Set
-Γ ∋ x ∶ t = Vec.lookup Γ x ≡ t × (∀ i → i ≢ x → un₁ (Vec.lookup Γ i))
+data _∋_∶_▹_ : Ctx n γ → Fin n → Type γ → Ctx m γ → Set where
+  zero : (t ∷ Γ) ∋ x ∶ t ▹ Γ
+  suc  : Γ ∋ x ∶ t ▹ Δ → (s ∷ Γ) ∋ suc x ∶ t ▹ (s ∷ Δ)
+
+_∋_∶_ : Ctx (suc n) γ → Fin (suc n) → Type γ → Set
+_∋_∶_ {n = n} Γ x t = Σ[ Δ ∈ Ctx n _ ] Γ ∋ x ∶ t ▹ Δ × un₂ Δ
+
 
 data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
   top : un₂ Γ
