@@ -157,48 +157,50 @@ inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
                         return {!(! (σ <|[ t ]) ‵× ([ s ]|> σ) , σ <|[ Γ₁ ] , (⊢e' ‵, subst (_⊢ _ ∶ _) (sym sound) ⊢f'))!}
 
 
-{-
 
-infer : (p : Proc n) → Maybe (Σ[ m ∈ ℕ ] Σ[ Γ ∈ Ctx n m ] Γ ⊢ p)
-infer end          = return (! fresh , end)
+infer : (p : Proc n) → Maybe (Σ[ γ ∈ KindCtx ] Σ[ Γ ∈ Ctx n γ ] Γ ⊢ p)
+infer end          = return {!!} -- (! fresh , end)
 infer (new p)      = do ! t ∷ Γ , ⊢p ← infer p
                         return (! Γ , new t ⊢p)
 infer (comp p q)   = do ! Γ₁ , ⊢p ← infer p
                         ! Γ₂ , ⊢q ← infer q
-                        ! σ , sound ← <[ Γ₁ ] == [ Γ₂ ]>
-                        let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> <<) ⊢p)
-                        let ⊢q' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢q)
-                        return (! σ <|[ Γ₁ ] , comp ⊢p' (subst (_⊢ _) (sym sound) ⊢q'))
+                        {!!}
+                        -- ! σ , sound ← <[ Γ₁ ] == [ Γ₂ ]>
+                        -- let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> <<) ⊢p)
+                        -- let ⊢q' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢q)
+                        -- return (! σ <|[ Γ₁ ] , comp ⊢p' (subst (_⊢ _) (sym sound) ⊢q'))
 infer (recv e p)   = do ! c , Γ₁ , ⊢e ← inferExpr e
                         ! v ∷ Γ₂ , ⊢p ← infer p
-                        ! σ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
-                        let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
-                        let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢p)
-                        return (! σ <|[ Γ₁ ] , recv (subst (_ ⊢ _ ∶_) (c#v-sound) ⊢e')
-                                                    (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p'))
+                        {!!}
+                        -- ! σ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
+                        -- let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
+                        -- let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
+                        -- let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢p)
+                        -- return (! σ <|[ Γ₁ ] , recv (subst (_ ⊢ _ ∶_) (c#v-sound) ⊢e')
+                        --                             (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p'))
 infer (send e f p) = do ! c , Γ₁ , ⊢e ← inferExpr e
                         ! v , Γ₂ , ⊢f ← inferExpr f
                         ! Γ₃ , ⊢p ← infer p
-                        ! σ₁ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
-                        ! σ₂ , Γ₁Γ₃-sound ← <[ σ₁ <|[ Γ₁ ] ] == [ Γ₃ ]>
-                        let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> <<) ⊢e)))
-                        let ⊢f' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> >>) ⊢f)))
-                        let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) ⊢p)
-                        return (! [ Γ₃ ]|> σ₂ , send (subst₂ (_⊢ _ ∶_) Γ₁Γ₃-sound (cong (sub σ₂ <| ∘ |> << <|) c#v-sound) ⊢e')
-                                                     (subst (_⊢ _ ∶ _) (trans (cong (sub σ₂ <| ∘ |> << <|) (sym Γ₁Γ₂-sound)) Γ₁Γ₃-sound) ⊢f')
-                                                     ⊢p')
+                        {!!}
+                        -- ! σ₁ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
+                        -- ! σ₂ , Γ₁Γ₃-sound ← <[ σ₁ <|[ Γ₁ ] ] == [ Γ₃ ]>
+                        -- let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
+                        -- let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> <<) ⊢e)))
+                        -- let ⊢f' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> >>) ⊢f)))
+                        -- let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) ⊢p)
+                        -- return (! [ Γ₃ ]|> σ₂ , send (subst₂ (_⊢ _ ∶_) Γ₁Γ₃-sound (cong (sub σ₂ <| ∘ |> << <|) c#v-sound) ⊢e')
+                        --                              (subst (_⊢ _ ∶ _) (trans (cong (sub σ₂ <| ∘ |> << <|) (sym Γ₁Γ₂-sound)) Γ₁Γ₃-sound) ⊢f')
+                        --                              ⊢p')
 infer (case e p q) = do ! v , Γ₁ , ⊢e ← inferExpr e
                         ! l ∷ Γ₂ , ⊢p ← infer p
                         ! r ∷ Γ₃ , ⊢q ← infer q
-                        ! σ₁ , Γ₂Γ₃-sound ← <[ Γ₂ ] == [ Γ₃ ]>
-                        ! σ₂ , sound ← <[ v ∷ Γ₁ ] == [ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ]>
-                        let lrv-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) ⊢e)
-                        let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> <<) ⊢p)))
-                        let ⊢q' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> >>) ⊢q)))
-                        return (! σ₂ <|[ Γ₁ ] , case (subst (_ ⊢ _ ∶_) lrv-sound ⊢e')
-                                                     (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p')
-                                                     (subst (λ ● → (_ ∷ ●) ⊢ _) (sym (trans Γ₁Γ₂-sound (cong (sub σ₂ <| ∘ |> >> <|) Γ₂Γ₃-sound))) ⊢q'))
--}
+                        {!!}
+                        -- ! σ₁ , Γ₂Γ₃-sound ← <[ Γ₂ ] == [ Γ₃ ]>
+                        -- ! σ₂ , sound ← <[ v ∷ Γ₁ ] == [ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ]>
+                        -- let lrv-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
+                        -- let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) ⊢e)
+                        -- let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> <<) ⊢p)))
+                        -- let ⊢q' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> >>) ⊢q)))
+                        -- return (! σ₂ <|[ Γ₁ ] , case (subst (_ ⊢ _ ∶_) lrv-sound ⊢e')
+                        --                              (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p')
+                        --                              (subst (λ ● → (_ ∷ ●) ⊢ _) (sym (trans Γ₁Γ₂-sound (cong (sub σ₂ <| ∘ |> >> <|) Γ₂Γ₃-sound))) ⊢q'))

@@ -57,7 +57,7 @@ _≗_ {A = A} {P = P} f g = ∀ {a : A} (x : P a) → f x ≡ g x
 <|-≗ eq {all _} [] = refl
 <|-≗ eq {all _} (x ∷ xs) = cong₂ _∷_ (<|-≗ eq x) (<|-≗ eq xs)
 
-thick-nothing : (x : γ ∋ k ▹ δ) → ∃[ eq ] thick x (_ , x) ≡ inj₂ eq
+thick-nothing : (x : γ ∋ k ▹ δ) → ∃[ eq ] (thick x (_ , x) ≡ inj₂ eq)
 thick-nothing zero = ! refl
 thick-nothing (suc x)
   with ! eq ← thick-nothing x

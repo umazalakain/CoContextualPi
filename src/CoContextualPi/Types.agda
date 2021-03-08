@@ -83,6 +83,7 @@ private
 
 -- x ≔ y + z is not necessarily unique
 data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
+  var     : ∀ {x y z} → Unification.var x ≔ Unification.var y +₀ Unification.var z
   erased  : 0∙ ≔ 0∙ +₀ 0∙
   1-left  : 1∙ ≔ 1∙ +₀ 0∙
   1-right : 1∙ ≔ 0∙ +₀ 1∙
