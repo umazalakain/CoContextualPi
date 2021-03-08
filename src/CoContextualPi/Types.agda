@@ -83,9 +83,8 @@ private
 
 -- x ≔ y + z is not necessarily unique
 data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
-  erased  : 0∙ ≔ 0∙ +₀ 0∙
-  1-left  : 1∙ ≔ 1∙ +₀ 0∙
-  1-right : 1∙ ≔ 0∙ +₀ 1∙
+  left    : x  ≔ x  +₀ 0∙
+  right   : x  ≔ 0∙ +₀ x
   shared  : ω∙ ≔ x  +₀ y
 
 data _≔_+₁_ {γ} : Type γ → Type γ → Type γ → Set where
