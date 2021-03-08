@@ -39,31 +39,31 @@ infix 15 _≗_
 _≗_ : {A : Set} {P : A → Set} {Q : A → Set} → ({a : A} → P a → Q a) → ({a : A} → P a → Q a) → Set
 _≗_ {A = A} {P = P} f g = ∀ {a : A} (x : P a) → f x ≡ g x
 
-<|-id : (t : γ ⊢' u) → var <| t ≡ t
+<|-id : (t : γ U⊢= u) → var <| t ≡ t
 <|-id {u = one _} (var x) = refl
 <|-id {u = one _} (con n as) = cong (con n) (<|-id as)
 <|-id {u = all _} [] = refl
 <|-id {u = all _} (x ∷ xs) = cong₂ _∷_ (<|-id x) (<|-id xs)
 
-<|-assoc : (f : ∀ {k} → δ ∋ k → ξ ⊢ k) (g : ∀ {k} → γ ∋ k → δ ⊢ k) (t : γ ⊢' u) → f <| (g <| t) ≡ (f <> g) <| t
+<|-assoc : (f : ∀ {k} → δ ∋= k → ξ ⊢= k) (g : ∀ {k} → γ ∋= k → δ ⊢= k) (t : γ U⊢= u) → f <| (g <| t) ≡ (f <> g) <| t
 <|-assoc {u = one _} f g (var x) = refl
 <|-assoc {u = one _} f g (con n as) = cong (con n) (<|-assoc f g as)
 <|-assoc {u = all _} f g [] = refl
 <|-assoc {u = all _} f g (x ∷ xs) = cong₂ _∷_ (<|-assoc f g x) (<|-assoc f g xs)
 
-<|-≗ : {f g : ∀ {k} → γ ∋ k → δ ⊢ k} → _≗_ {P = γ ∋_} f g → _≗_ {P = γ ⊢'_} (f <|_) (g <|_)
+<|-≗ : {f g : ∀ {k} → γ ∋= k → δ ⊢= k} → _≗_ {P = γ ∋=_} f g → _≗_ {P = γ U⊢=_} (f <|_) (g <|_)
 <|-≗ eq {one _} (var x) = eq x
 <|-≗ eq {one _} (con n as) = cong (con n) (<|-≗ eq as)
 <|-≗ eq {all _} [] = refl
 <|-≗ eq {all _} (x ∷ xs) = cong₂ _∷_ (<|-≗ eq x) (<|-≗ eq xs)
 
-thick-nothing : (x : γ ∋ k ▹ δ) → ∃[ eq ] (thick x (_ , x) ≡ inj₂ eq)
+thick-nothing : (x : γ ∋= k ▹ δ) → ∃[ eq ] (thick x (_ , x) ≡ inj₂ eq)
 thick-nothing zero = ! refl
 thick-nothing (suc x)
   with ! eq ← thick-nothing x
   rewrite eq = ! refl
 
-thick-reverse : (x : γ ∋ k' ▹ δ) (y : γ ∋ k) {r : δ ∋ k} → thick x y ≡ inj₁ r → ∃[ y' ] (y ≡ thin x y')
+thick-reverse : (x : γ ∋= k' ▹ δ) (y : γ ∋= k) {r : δ ∋= k} → thick x y ≡ inj₁ r → ∃[ y' ] (y ≡ thin x y')
 thick-reverse zero (! suc y) eq = (! y) , refl
 thick-reverse (suc x) (! zero) refl = (! zero) , refl
 thick-reverse (suc x) (! suc y) eq
@@ -72,19 +72,19 @@ thick-reverse (suc x) (! suc y) eq
   with refl ← eq
   = Product.map (Product.map _ suc) (cong (Product.map _ suc)) (thick-reverse x (! y) qe)
 
-nothing-thick : (x : γ ∋ k ▹ δ) (y : γ ∋ k) → ∀ {eq} → thick x y ≡ inj₂ eq → (! x) ≡ y
+nothing-thick : (x : γ ∋= k ▹ δ) (y : γ ∋= k) → ∀ {eq} → thick x y ≡ inj₂ eq → (! x) ≡ y
 nothing-thick zero (! zero) eq = refl
 nothing-thick (suc x) (! suc y) _
   with inj₂ r ← thick x (! y)
   | [ qe ] ← inspect (thick x) (! y)
   = cong (Product.map _ suc) (nothing-thick x (! y) qe)
 
-thick-thin : (x : δ ∋ k' ▹ γ) (y : γ ∋ k) → thick x (thin x y) ≡ inj₁ y
+thick-thin : (x : δ ∋= k' ▹ γ) (y : γ ∋= k) → thick x (thin x y) ≡ inj₁ y
 thick-thin zero y = refl
 thick-thin (suc x) (! zero) = refl
 thick-thin (suc x) (! suc y) = cong (Sum.map₁ (Product.map _ suc)) (thick-thin x (! y))
 
-check-thin : (i : δ ∋ k' ▹ γ) (t : δ ⊢' u) {t' : γ ⊢' u}
+check-thin : (i : δ ∋= k' ▹ γ) (t : δ U⊢= u) {t' : γ U⊢= u}
            → check i t ≡ just t' → t ≡ |> (thin i) <| t'
 check-thin {u = one _} i (var x) eq
   with inj₁ y ← thick i x | [ qe ] ← inspect (thick i) x
@@ -105,7 +105,7 @@ check-thin {u = all _} i (x ∷ xs) eq
   = cong₂ _∷_ (check-thin i x qe) (check-thin i xs qes)
 
 
-sub-++ : (xs : Subst δ ξ) (ys : Subst γ δ) → _≗_ {P = γ ∋_} (sub (xs ++ ys)) (sub xs <> sub ys)
+sub-++ : (xs : Subst δ ξ) (ys : Subst γ δ) → _≗_ {P = γ ∋=_} (sub (xs ++ ys)) (sub xs <> sub ys)
 sub-++ xs [] t = refl
 sub-++ xs (ys -, i ↦ t') {k} t
   rewrite <|-assoc {u = one k} (sub xs) (sub ys) (Sum.[ var , kind-subst t' ] (thick i t))
@@ -121,7 +121,7 @@ sub-++ xs (ys -, i ↦ t') {k} t
 ++-assoc xs ys (zs -, z ↦ r) = cong (_-, z ↦ r) (++-assoc xs ys zs)
 
 
-flexFlex-sound : (x : δ ∋ k ▹ γ) (y : δ ∋ k) {σ : Subst δ ξ} → flexFlex x y ≡ (! σ) → sub σ (! x) ≡ sub σ y
+flexFlex-sound : (x : δ ∋= k ▹ γ) (y : δ ∋= k) {σ : Subst δ ξ} → flexFlex x y ≡ (! σ) → sub σ (! x) ≡ sub σ y
 flexFlex-sound x y eq with thick x y | inspect (thick x) y
 flexFlex-sound x y refl | inj₂ _ | [ req ] = cong var (nothing-thick x y req)
 flexFlex-sound x y refl | inj₁ z | [ req ]
@@ -130,7 +130,7 @@ flexFlex-sound x y refl | inj₁ z | [ req ]
   rewrite eq
   rewrite thick-thin x r = cong var (Sumₚ.inj₁-injective (sym req))
 
-flexRigid-sound : (x : δ ∋ k ▹ γ) (t : δ ⊢ k) {σ : Subst δ ξ}
+flexRigid-sound : (x : δ ∋= k ▹ γ) (t : δ ⊢= k) {σ : Subst δ ξ}
                   → flexRigid x t ≡ just (! σ) → sub σ (! x) ≡ sub σ <| t
 flexRigid-sound x t eq with check x t | inspect (check x) t
 flexRigid-sound x t refl | just t' | [ eq ]
@@ -146,7 +146,7 @@ flexRigid-sound x t refl | just t' | [ eq ]
       ∎
     where open ≡.≡-Reasoning
 
-amgu-step : (eq : List.length γ ≡ suc n) (acc : Subst δ ξ) (z : γ ∋ k ▹ δ) (r : δ ⊢ k) (s t : γ ⊢' u)
+amgu-step : (eq : List.length γ ≡ suc n) (acc : Subst δ ξ) (z : γ ∋= k ▹ δ) (r : δ ⊢= k) (s t : γ U⊢= u)
           → amgu eq s t (_ , acc -, z ↦ r)
           ≡ Maybe.map (Product.map₂ (_-, z ↦ r))
                       (amgu (dec-length z eq) (r for z <| s) (r for z <| t) (_ , acc))
@@ -170,7 +170,7 @@ amgu-step {γ = _ ∷ _} {n = n} {u = all _} eq acc z r (x ∷ xs) (y ∷ ys)
 ...   | just (_ , acc'') | [ eqacc' ] rewrite amgu-step eq acc z r x y | eqacc | amgu-step eq acc' z r xs ys | eqacc' = refl
 
 
-amgu-acc : (eq : List.length γ ≡ n) (s t : γ ⊢' u) (acc : Subst γ ξ) {σ : Subst γ ψ}
+amgu-acc : (eq : List.length γ ≡ n) (s t : γ U⊢= u) (acc : Subst γ ξ) {σ : Subst γ ψ}
          → amgu eq s t (! acc) ≡ just (! σ)
          → ∃[ found ] (σ ≡ found ++ acc)
 amgu-acc {u = all _} eq [] [] acc refl = _ , sym (++-id _)
@@ -197,7 +197,7 @@ amgu-acc {n = suc n} {u = one _} eq s t (acc -, z ↦ r) qe
   = ! cong (_-, _ ↦ _) r
 
 
-amgu-sound : (eq : List.length γ ≡ n) (s t : γ ⊢' u) (acc : ∃ (Subst γ)) {σ : Subst γ ξ}
+amgu-sound : (eq : List.length γ ≡ n) (s t : γ U⊢= u) (acc : ∃ (Subst γ)) {σ : Subst γ ξ}
            → amgu eq s t acc ≡ just (! σ) → sub σ <| s ≡ sub σ <| t
 amgu-sound {u = all _} leq [] [] acc eq = refl
 amgu-sound {u = all _} leq (x ∷ xs) (y ∷ ys) (_ , acc) eq
@@ -243,7 +243,7 @@ amgu-sound {n = suc n} {u = one _} leq s t (_ , acc -, z ↦ r) eq
   = amgu-sound (dec-length z leq) (r for z <| s) (r for z <| t) (_ , acc) steq
 
 
-unify-sound : (s t : γ ⊢' u) → Maybe (Σ[ ξ ∈ KindCtx ] Σ[ σ ∈ Subst γ ξ ] sub σ <| s ≡ sub σ <| t)
+unify-sound : (s t : γ U⊢= u) → Maybe (Σ[ ξ ∈ KindCtx ] Σ[ σ ∈ Subst γ ξ ] sub σ <| s ≡ sub σ <| t)
 unify-sound s t with unify s t | inspect (unify s) t
 unify-sound s t | nothing | _ = nothing
 unify-sound s t | just (_ , σ) | [ eq ] = just (_ , σ , amgu-sound refl s t idSubst eq)

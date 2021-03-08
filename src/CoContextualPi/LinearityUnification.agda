@@ -14,7 +14,6 @@ open import Data.Sum as Sum using (inj₁; inj₂)
 import Data.List.Properties as Listₚ
 
 open import CoContextualPi.Types
-open Unification using (|>; _<|_; Subst; var; con; zero; suc; sub; !_; []; _∋_; _∋_▹_; _for_; _<>_)
 open import CoContextualPi.TypeSystem
 
 module CoContextualPi.LinearityUnification where
@@ -33,17 +32,16 @@ private
     n m l : ℕ
     k k' : Kind
     γ δ ξ : KindCtx
-    x y z : Usage γ
-    t s r : Type γ
-    Γ Δ Θ : Ctx n γ
+    x y z : γ ⊢= multiplicity
+    t s r : γ ⊢= type
 
-+₀-<| : (σ : ∀ {k} → γ ∋ k → δ Unification.⊢ k) → x ≔ y +₀ z → (σ <| x) ≔ (σ <| y) +₀ (σ <| z)
++₀-<| : (σ : ∀ {k} → γ ∋= k → δ ⊢= k) → x ≔ y +₀ z → (σ <| x) ≔ (σ <| y) +₀ (σ <| z)
 +₀-<| σ left = left
 +₀-<| σ right = right
 +₀-<| σ shared = shared
 
-FSubst : ∀ {p} {γ : KindCtx} → ({δ : KindCtx} → (∀ {k} → γ ∋ k → δ Unification.⊢ k) → Set p) → Set p
-FSubst {γ = γ} P = ∃[ δ ] (Σ[ σ ∈ (∀ {k} → γ ∋ k → δ Unification.⊢ k) ] P σ)
+FSubst : ∀ {p} {γ : KindCtx} → ({δ : KindCtx} → (∀ {k} → γ ∋= k → δ ⊢= k) → Set p) → Set p
+FSubst {γ = γ} P = ∃[ δ ] (Σ[ σ ∈ (∀ {k} → γ ∋= k → δ ⊢= k) ] P σ)
 syntax FSubst (λ σ → A) = ∃[ σ <| A ]
 
 
@@ -52,12 +50,12 @@ syntax FSubst (λ σ → A) = ∃[ σ <| A ]
 +₀-comm right = left
 +₀-comm shared = shared
 
-+₀-id-thick : (x : γ ∋ multiplicity ▹ δ) (t : δ Unification.⊢ multiplicity) → t ≔ (0∙ for x <| var (! x)) +₀ t
++₀-id-thick : (x : γ ∋= multiplicity ▹ δ) (t : δ ⊢= multiplicity) → t ≔ (0∙ for x <| var (! x)) +₀ t
 +₀-id-thick x t
   with refl , eq ← Unificationₚ.thick-nothing x
   rewrite eq = right
 
-+₀-flex : (x : γ ∋ multiplicity) (t : γ Unification.⊢ multiplicity) → Maybe ∃[ σ <| ∃[ r ] r ≔ (σ <| var x) +₀ (σ <| t) ]
++₀-flex : (x : γ ∋= multiplicity) (t : γ ⊢= multiplicity) → Maybe ∃[ σ <| ∃[ r ] r ≔ (σ <| var x) +₀ (σ <| t) ]
 +₀-flex (! x) (var y) = just (! 0∙ for x , (0∙ for x) y , +₀-id-thick x ((0∙ for x) y))
 +₀-flex (! x) 0∙ = just (! 0∙ for x , 0∙ , +₀-id-thick x 0∙)
 +₀-flex (! x) 1∙ = just (! 0∙ for x , 1∙ , +₀-id-thick x 1∙)
@@ -81,12 +79,12 @@ syntax FSubst (λ σ → A) = ∃[ σ <| A ]
   do (! σ , r , sp) ← +₀-flex y s
      just (! σ , r , +₀-comm sp)
 
-+₁-id-thick : (x : γ ∋ type ▹ δ) (t : δ Unification.⊢ type) → t ≔ ({!!} for x <| var (! x)) +₁ t
++₁-id-thick : (x : γ ∋= type ▹ δ) (t : δ ⊢= type) → t ≔ ({!!} for x <| var (! x)) +₁ t
 +₁-id-thick x t
   with refl , eq ← Unificationₚ.thick-nothing x
   = {!!}
 
-+₁-flex : (x : γ ∋ type) (t : γ Unification.⊢ type) → Maybe ∃[ σ <| Σ[ r ∈ Type _ ] r ≔ (σ <| var x) +₁ (σ <| t) ]
++₁-flex : (x : γ ∋= type) (t : γ ⊢= type) → Maybe ∃[ σ <| Σ[ r ∈ Type _ ] r ≔ (σ <| var x) +₁ (σ <| t) ]
 +₁-flex (! x) (var y) = just (! |> (Product.map _ suc) , var (! zero) , var )
 +₁-flex (! x) ‵⊤ = just (! ‵⊤ for x , ‵⊤ , {!!})
 +₁-flex (! x) (s ‵+ t) = {!!}

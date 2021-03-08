@@ -56,15 +56,15 @@ decEqCons omega omega = yes refl
 
 import CoContextualPi.StrictUnification
 module Unification = CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons
-open Unification using (KindCtx) public
+open Unification public
 import CoContextualPi.StrictUnification.Properties
 module Unificationₚ = CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
 
 Usage : KindCtx → Set
-Usage γ = γ Unification.⊢ multiplicity
+Usage γ = γ ⊢= multiplicity
 
 Type : KindCtx → Set
-Type γ = γ Unification.⊢ type
+Type γ = γ ⊢= type
 
 infixr 25 #
 pattern ‵⊤ = Unification.con top []
@@ -80,6 +80,8 @@ private
     γ : KindCtx
     x y iz ix iy oz ox oy : Usage γ
     a b c t lz lx ly rz rx ry : Type γ
+
+-- data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
 
 -- x ≔ y + z is not necessarily unique
 data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
