@@ -45,21 +45,21 @@ data _∋_∶_▹_ : Ctx n γ → Fin n → Type γ → Ctx m γ → Set where
   suc  : Γ ∋ x ∶ t ▹ Δ → (s ∷ Γ) ∋ suc x ∶ t ▹ (s ∷ Δ)
 
 _∋_∶_ : Ctx (suc n) γ → Fin (suc n) → Type γ → Set
-_∋_∶_ {n = n} Γ x t = Σ[ Δ ∈ Ctx n _ ] Γ ∋ x ∶ t ▹ Δ × un₂ Δ
+_∋_∶_ {n = n} Γ x t = Σ[ Δ ∈ Ctx n _ ] Γ ∋ x ∶ t ▹ Δ × ⊎-un Δ
 
 
 data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
-  top : un₂ Γ
+  top : ⊎-un Γ
       → Γ ⊢ top ∶ ‵⊤
 
   var : Γ ∋ x ∶ t
       → Γ ⊢ var x ∶ t
 
-  fst : un₁ s
+  fst : +-un s
       → Γ ⊢ e ∶ (t ‵× s)
       → Γ ⊢ fst e ∶ t
 
-  snd : un₁ t
+  snd : +-un t
       → Γ ⊢ e ∶ (t ‵× s)
       → Γ ⊢ snd e ∶ s
 
@@ -69,38 +69,38 @@ data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
   inr : Γ ⊢ e ∶ s
       → Γ ⊢ inr e ∶ (t ‵+ s)
 
-  _‵,_ : Γ ≔ Δ +₂ Ξ
+  _‵,_ : Γ ≔ Δ ⊎ Ξ
        → Δ ⊢ e ∶ s
        → Ξ ⊢ f ∶ t
        → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
 
 
 data _⊢_ : Ctx n γ → Proc n → Set where
-  end : un₂ Γ
+  end : ⊎-un Γ
       → Γ ⊢ end
 
   new : (t : Type γ)
       → (t ∷ Γ) ⊢ P
       → Γ ⊢ new P
 
-  comp : Γ ≔ Δ +₂ Ξ
+  comp : Γ ≔ Δ ⊎ Ξ
        → Δ ⊢ P
        → Ξ ⊢ Q
        → Γ ⊢ comp P Q
 
-  recv : Γ ≔ Δ +₂ Ξ
+  recv : Γ ≔ Δ ⊎ Ξ
        → Δ ⊢ e ∶ # 1∙ 0∙ t
        → (t ∷ Ξ) ⊢ P
        → Γ ⊢ recv e P
 
-  send : Γ ≔ Δ +₂ Ξ
-       → Ξ ≔ Ω +₂ Ψ
+  send : Γ ≔ Δ ⊎ Ξ
+       → Ξ ≔ Ω ⊎ Ψ
        → Δ ⊢ e ∶ # 0∙ 1∙ t
        → Ω ⊢ f ∶ t
        → Ψ ⊢ P
        → Γ ⊢ send e f P
 
-  case : Γ ≔ Δ +₂ Ξ
+  case : Γ ≔ Δ ⊎ Ξ
        → Δ ⊢ e ∶ (t ‵+ s)
        → (t ∷ Ξ) ⊢ P
        → (s ∷ Ξ) ⊢ Q

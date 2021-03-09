@@ -81,26 +81,23 @@ private
     x y iz ix iy oz ox oy : Usage γ
     a b c t lz lx ly rz rx ry : Type γ
 
--- data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
+data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set where
+  -- NOTE: x ≔ y + z is not necessarily unique
+  left   : x  ≔ x  + 0∙
+  right  : x  ≔ 0∙ + x
+  shared : ω∙ ≔ x  + y
+  -- NOTE: variables only for types
+  var   : ∀ {x y z : γ ∋= type} → var x ≔ var y + var z
+  top    : ‵⊤ ≔ ‵⊤ + ‵⊤
+  chan   : iz ≔ ix + iy → oz ≔ ox + oy
+         → # iz oz t ≔ # ix ox t + # iy oy t
+  prod   : lz ≔ lx + ly → rz ≔ rx + ry
+         → (lz ‵× rz) ≔ (lx ‵× rx) + (ly ‵× ry)
+  sum    : lz ≔ lx + ly → rz ≔ rx + ry
+         → (lz ‵+ rz) ≔ (lx ‵+ rx) + (ly ‵+ ry)
 
--- x ≔ y + z is not necessarily unique
-data _≔_+₀_ {γ} : Usage γ → Usage γ → Usage γ → Set where
-  left    : x  ≔ x  +₀ 0∙
-  right   : x  ≔ 0∙ +₀ x
-  shared  : ω∙ ≔ x  +₀ y
-
-data _≔_+₁_ {γ} : Type γ → Type γ → Type γ → Set where
-  var   : ∀ {x y z} → Unification.var x ≔ Unification.var y +₁ Unification.var z
-  top   : ‵⊤ ≔ ‵⊤ +₁ ‵⊤
-  chan  : iz ≔ ix +₀ iy → oz ≔ ox +₀ oy
-        → # iz oz t ≔ # ix ox t +₁ # iy oy t
-  prod  : lz ≔ lx +₁ ly → rz ≔ rx +₁ ry
-        → (lz ‵× rz) ≔ (lx ‵× rx) +₁ (ly ‵× ry)
-  sum   : lz ≔ lx +₁ ly → rz ≔ rx +₁ ry
-        → (lz ‵+ rz) ≔ (lx ‵+ rx) +₁ (ly ‵+ ry)
-
-un₁ : Type γ → Set
-un₁ t = t ≔ t +₁ t
++-un : γ ⊢= k → Set
++-un t = t ≔ t + t
 
 Ctx : ℕ → KindCtx → Set
 Ctx n γ = Vec (Type γ) n
@@ -109,9 +106,9 @@ private
   variable
     A B C : Ctx n γ
 
-data _≔_+₂_ {γ} : Ctx n γ → Ctx n γ → Ctx n γ → Set where
-  [] : [] ≔ [] +₂ []
-  _∷_ : (a ≔ b +₁ c) → A ≔ B +₂ C → (a ∷ A) ≔ (b ∷ B) +₂ (c ∷ C)
+data _≔_⊎_ {γ} : Ctx n γ → Ctx n γ → Ctx n γ → Set where
+  [] : [] ≔ [] ⊎ []
+  _∷_ : (a ≔ b + c) → A ≔ B ⊎ C → (a ∷ A) ≔ (b ∷ B) ⊎ (c ∷ C)
 
-un₂ : Ctx n γ → Set
-un₂ Γ = Γ ≔ Γ +₂ Γ
+⊎-un : Ctx n γ → Set
+⊎-un Γ = Γ ≔ Γ ⊎ Γ

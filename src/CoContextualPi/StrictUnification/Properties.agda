@@ -63,6 +63,9 @@ thick-nothing (suc x)
   with ! eq ← thick-nothing x
   rewrite eq = ! refl
 
+<|-for : (x : γ ∋= k ▹ δ) {t : δ ⊢= k} → t for x <| var (! x) ≡ t
+<|-for x with refl , eq ← thick-nothing x rewrite eq = refl
+
 thick-reverse : (x : γ ∋= k' ▹ δ) (y : γ ∋= k) {r : δ ∋= k} → thick x y ≡ inj₁ r → ∃[ y' ] (y ≡ thin x y')
 thick-reverse zero (! suc y) eq = (! y) , refl
 thick-reverse (suc x) (! zero) refl = (! zero) , refl
@@ -104,6 +107,22 @@ check-thin {u = all _} i (x ∷ xs) eq
   with refl ← eq
   = cong₂ _∷_ (check-thin i x qe) (check-thin i xs qes)
 
+
+check-for : (x : γ ∋= k ▹ δ) (s : γ U⊢= u) {t : δ ⊢= k} {s' : δ U⊢= u}
+          → check x s ≡ just s' → t for x <| s ≡ s'
+check-for {u = one _} i (var x) eq
+  with inj₁ _ ← thick i x
+  = Maybeₚ.just-injective eq
+check-for {u = one _} i (con n as) eq
+  with just y ← check i as | [ qe ] ← inspect (check i) as
+  rewrite sym (Maybeₚ.just-injective eq)
+  = cong (con n) (check-for i as qe)
+check-for {u = all _} i [] eq = Maybeₚ.just-injective eq
+check-for {u = all _} i (x ∷ xs) eq
+  with just y ← check i x | [ qe ] ← inspect (check i) x
+  with just ys ← check i xs | [ qes ] ← inspect (check i) xs
+  rewrite sym (Maybeₚ.just-injective eq)
+  = cong₂ _∷_ (check-for i x qe) (check-for i xs qes)
 
 sub-++ : (xs : Subst δ ξ) (ys : Subst γ δ) → _≗_ {P = γ ∋=_} (sub (xs ++ ys)) (sub xs <> sub ys)
 sub-++ xs [] t = refl
