@@ -37,23 +37,23 @@ private
 
 fresh : Ctx n n
 fresh {n = zero} = []
-fresh {n = suc n} = var zero ∷ Vec.map ((|> suc) <|) fresh
+fresh {n = suc n} = var zero ∷ Vec.map ((|> suc) <|_) fresh
 
 infixr 2 !_
 pattern !_ t = _ , t
 
 
 <|-lookup : (σ : Fin m → Type l) (xs : Vec (Type m) n) {i : Fin n}
-          → Vec.lookup ((σ <|) xs) i ≡ (σ <|) (Vec.lookup xs i)
+          → Vec.lookup (σ <| xs) i ≡ σ <| (Vec.lookup xs i)
 <|-lookup σ (x ∷ xs) {zero} = refl
 <|-lookup σ (x ∷ xs) {suc i} = <|-lookup σ xs
 
 <|-∋ : (σ : Fin m → Type l) (xs : Vec (Type m) n) {x : Fin n} {t : Type m}
-     → xs ∋ x ∶ t → ((σ <|) xs) ∋ x ∶ ((σ <|) t)
+     → xs ∋ x ∶ t → (σ <| xs) ∋ x ∶ (σ <| t)
 <|-∋ σ xs refl = <|-lookup σ xs
 
 <|-⊢-∶ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {e : Expr n} {t : Type m}
-       → xs ⊢ e ∶ t → ((σ <|) xs) ⊢ e ∶ ((σ <|) t)
+       → xs ⊢ e ∶ t → (σ <| xs) ⊢ e ∶ (σ <| t)
 <|-⊢-∶ σ top = top
 <|-⊢-∶ σ {xs} (var x) = var (<|-∋ σ xs x)
 <|-⊢-∶ σ (fst ⊢e) = fst (<|-⊢-∶ σ ⊢e)
@@ -62,7 +62,7 @@ pattern !_ t = _ , t
 <|-⊢-∶ σ (inr ⊢e) = inr (<|-⊢-∶ σ ⊢e)
 <|-⊢-∶ σ (⊢e ‵, ⊢f) = (<|-⊢-∶ σ ⊢e) ‵, (<|-⊢-∶ σ ⊢f)
 
-<|-⊢ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {P : Proc n} → xs ⊢ P → ((σ <|) xs) ⊢ P
+<|-⊢ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {P : Proc n} → xs ⊢ P → (σ <| xs) ⊢ P
 <|-⊢ σ end = end
 <|-⊢ σ (new t ⊢P) = new _ (<|-⊢ σ ⊢P)
 <|-⊢ σ (comp ⊢P ⊢Q) = comp (<|-⊢ σ ⊢P) (<|-⊢ σ ⊢Q)
@@ -80,16 +80,16 @@ _==_ = unify-sound
 >> = Fin.raise _
 
 <[_] : UType u n → UType u (n ℕ.+ m)
-<[_] = |> << <|
+<[_] = |> << <|_
 
 _<|[_] : Subst (n ℕ.+ m) l → UType u n → UType u l
-_<|[_] σ = (sub σ) <| ∘ <[_]
+_<|[_] σ = (sub σ) <|_ ∘ <[_]
 
 [_]> : UType u n → UType u (m ℕ.+ n)
-[_]> = |> >> <|
+[_]> = |> >> <|_
 
 [_]|>_ : UType u m → Subst (n ℕ.+ m) l → UType u l
-[_]|>_ x σ = ((sub σ) <|) [ x ]>
+[_]|>_ x σ = (sub σ) <| [ x ]>
 
 
 inferExpr : (e : Expr n) → Maybe (Σ[ m ∈ ℕ ] Σ[ t ∈ Type m ] Σ[ Γ ∈ Ctx n m ] Γ ⊢ e ∶ t)
@@ -147,8 +147,8 @@ infer (send e f p) = do ! c , Γ₁ , ⊢e ← inferExpr e
                         let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> <<) ⊢e)))
                         let ⊢f' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> >>) ⊢f)))
                         let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) ⊢p)
-                        return (! [ Γ₃ ]|> σ₂ , send (subst₂ (_⊢ _ ∶_) Γ₁Γ₃-sound (cong (sub σ₂ <| ∘ |> << <|) c#v-sound) ⊢e')
-                                                     (subst (_⊢ _ ∶ _) (trans (cong (sub σ₂ <| ∘ |> << <|) (sym Γ₁Γ₂-sound)) Γ₁Γ₃-sound) ⊢f')
+                        return (! [ Γ₃ ]|> σ₂ , send (subst₂ (_⊢ _ ∶_) Γ₁Γ₃-sound (cong (sub σ₂ <|_ ∘ |> << <|_) c#v-sound) ⊢e')
+                                                     (subst (_⊢ _ ∶ _) (trans (cong (sub σ₂ <|_ ∘ |> << <|_) (sym Γ₁Γ₂-sound)) Γ₁Γ₃-sound) ⊢f')
                                                      ⊢p')
 infer (case e p q) = do ! v , Γ₁ , ⊢e ← inferExpr e
                         ! l ∷ Γ₂ , ⊢p ← infer p
@@ -161,4 +161,4 @@ infer (case e p q) = do ! v , Γ₁ , ⊢e ← inferExpr e
                         let ⊢q' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> >>) ⊢q)))
                         return (! σ₂ <|[ Γ₁ ] , case (subst (_ ⊢ _ ∶_) lrv-sound ⊢e')
                                                      (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p')
-                                                     (subst (λ ● → (_ ∷ ●) ⊢ _) (sym (trans Γ₁Γ₂-sound (cong (sub σ₂ <| ∘ |> >> <|) Γ₂Γ₃-sound))) ⊢q'))
+                                                     (subst (λ ● → (_ ∷ ●) ⊢ _) (sym (trans Γ₁Γ₂-sound (cong (sub σ₂ <|_ ∘ |> >> <|_) Γ₂Γ₃-sound))) ⊢q'))

@@ -38,7 +38,7 @@ private
 
 
 infix 25 _for_
-infixl 20 _<|
+infixl 20 _<|_
 infixr 20 |>
 
 private variable n m l k : ℕ
@@ -101,14 +101,14 @@ decEqTerm {u = vec k} (x ∷ xs) (y ∷ ys) | yes refl | yes refl = yes refl
 |> : (Fin n → Fin m) → Fin n → Term m
 |> f = var ∘ f
 
-_<| : (Fin n → Term m) → UTerm u n → UTerm u m
-_<| {u = one} f (var x) = f x
-_<| {u = one} f (con n as) = con n ((f <|) as)
-_<| {u = vec k} f [] = []
-_<| {u = vec k} f (x ∷ xs) = (f <|) x ∷ (f <|) xs
+_<|_ : (Fin n → Term m) → UTerm u n → UTerm u m
+_<|_ {u = one} f (var x) = f x
+_<|_ {u = one} f (con n as) = con n (f <| as)
+_<|_ {u = vec k} f [] = []
+_<|_ {u = vec k} f (x ∷ xs) = f <| x ∷ f <| xs
 
 _<>_ : (Fin m → Term n) → (Fin l → Term m) → (Fin l → Term n)
-f <> g = f <| ∘ g
+f <> g = f <|_ ∘ g
 
 
 -- Push in and push out\
@@ -193,7 +193,7 @@ amgu {u = one} (con {kx} nx asx) (con {ky} ny asy) acc
 ...            | false = nothing
 ...            | true = amgu asx asy acc
 amgu {u = one} s t (_ , acc -, z ↦ r) =
-  Product.map₂ (_-, z ↦ r) <$> amgu ((r for z <|) s) ((r for z <|) t) (_ , acc)
+  Product.map₂ (_-, z ↦ r) <$> amgu (r for z <| s) (r for z <| t) (_ , acc)
 
 
 unify : UTerm u m → UTerm u m → Maybe(∃ (Subst m))
