@@ -5,7 +5,7 @@ open import Function using (_∘_)
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec.Base as Vec using (Vec; []; _∷_)
-open import Data.Product as Product using (_,_)
+open import Data.Product as Product using (_,_; Σ-syntax)
 open import Data.List.Base as List using (List; []; _∷_)
 open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
 
@@ -86,8 +86,6 @@ data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set wh
   left   : x  ≔ x  + 0∙
   right  : x  ≔ 0∙ + x
   shared : ω∙ ≔ x  + y
-  -- NOTE: variables only for types
-  var   : ∀ {x y z : γ ∋= type} → var x ≔ var y + var z
   top    : ‵⊤ ≔ ‵⊤ + ‵⊤
   chan   : iz ≔ ix + iy → oz ≔ ox + oy
          → # iz oz t ≔ # ix ox t + # iy oy t
@@ -95,6 +93,9 @@ data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set wh
          → (lz ‵× rz) ≔ (lx ‵× rx) + (ly ‵× ry)
   sum    : lz ≔ lx + ly → rz ≔ rx + ry
          → (lz ‵+ rz) ≔ (lx ‵+ rx) + (ly ‵+ ry)
+
+_~_ : γ ⊢= k → γ ⊢= k → Set
+_~_ {k = k} s t = (var (! zero) ≔ |> (Product.map _ suc) <| s + (|> (Product.map _ suc ) <| t))
 
 +-un : γ ⊢= k → Set
 +-un t = t ≔ t + t

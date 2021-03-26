@@ -1,4 +1,4 @@
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; trans; cong; sym; subst; subst₂)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; trans; cong; sym; subst; subst₂; cong-app; cong₂)
 open import Category.Functor
 open import Category.Monad
 open import Category.Applicative
@@ -10,11 +10,14 @@ open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec as Vec using (Vec; []; _∷_; [_])
 open import Data.List as List using (List; []; _∷_; [_])
+open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
 
 import Data.Maybe.Categorical as maybeCat
 import Data.Nat.Properties as ℕₚ
 import Data.Fin.Properties as Finₚ
 import Data.Vec.Properties as Vecₚ
+import Data.List.Properties as Listₚ
+import Data.List.Relation.Unary.All.Properties as Allₚ
 
 open import CoContextualPi.Types
 open Unification using (|>; _<|_; var; con; zero; suc; !_)
@@ -24,9 +27,10 @@ module CoContextualPi.Inference where
 
 private
   variable
+    u : Univ
     n m l : ℕ
     k k' : Kind
-    γ δ : KindCtx
+    γ δ θ ξ : KindCtx
     x y z : Usage γ
     t s r : Type γ
     Γ Δ Θ : Ctx n γ
@@ -41,166 +45,153 @@ private
   instance maybeApplicative = maybeCat.applicative
 
 
-suc-≔-+₀ : x ≔ y +₀ z → (|> (Product.map _ (suc {k' = k'})) <|_) x ≔ (|> (Product.map _ suc) <|_) y +₀ (|> (Product.map _ suc) <|_) z
-suc-≔-+₀ erased = erased
-suc-≔-+₀ 1-left = 1-left
-suc-≔-+₀ 1-right = 1-right
-suc-≔-+₀ shared = shared
+data Constr (γ : KindCtx) : Set where
+  [_==_] : γ ⊢= k → γ ⊢= k → Constr γ
+  [_==_+_] : γ ⊢= k → γ ⊢= k → γ ⊢= k → Constr γ
 
-suc-≔-+₁ : t ≔ s +₁ r → (|> (Product.map _ (suc {k' = k'})) <|_) t ≔ (|> (Product.map _ suc) <|_) s +₁ (|> (Product.map _ suc) <|_) r
-suc-≔-+₁ var = var
-suc-≔-+₁ top = top
-suc-≔-+₁ (chan i o) = chan (suc-≔-+₀ i) (suc-≔-+₀ o)
-suc-≔-+₁ (prod l r) = prod (suc-≔-+₁ l) (suc-≔-+₁ r)
-suc-≔-+₁ (sum l r) = sum (suc-≔-+₁ l) (suc-≔-+₁ r)
+⟦_⟧ᶜ¹ : Constr γ → Set
+⟦_⟧ᶜ¹ [ x == y ] = x ≡ y
+⟦_⟧ᶜ¹ [ x == y + z ] = x ≔ y + z
 
-suc-≔-+₂ : Γ ≔ Δ +₂ Θ → Vec.map (|> (Product.map _ (suc {k' = k'})) <|_) Γ ≔ Vec.map (|> (Product.map _ suc) <|_) Δ +₂ Vec.map (|> (Product.map _ suc) <|_) Θ
-suc-≔-+₂ [] = []
-suc-≔-+₂ (x ∷ xs) = suc-≔-+₁ x ∷ suc-≔-+₂ xs
+⟦_⟧ : List (Constr γ) → Set
+⟦_⟧ = All ⟦_⟧ᶜ¹
 
-fresh : ∃[ γ ] (Σ (Ctx n γ) un₂)
-fresh {n = zero} = [] , [] , []
-fresh {n = suc n} = let γ , Γ , unΓ = fresh {n = n} in
-  type ∷ γ , var (! zero) ∷ Vec.map (|> (Product.map _ suc) <|_) Γ , var ∷ suc-≔-+₂ unΓ
+_<|ᶜ¹_ : (∀ {k} → γ ∋= k → δ ⊢= k) → Constr γ → Constr δ
+f <|ᶜ¹ [ x == y ] = [ f <| x == f <| y ]
+f <|ᶜ¹ [ x == y + z ] = [ f <| x == f <| y + f <| z ]
+
+<|ᶜ¹-<> : (σ : ∀ {k} → γ ∋= k → δ ⊢= k) → (θ : ∀ {k} → δ ∋= k → ξ ⊢= k) → ∀ c → (θ <|ᶜ¹ (σ <|ᶜ¹ c)) ≡ ((θ <> σ) <|ᶜ¹ c)
+<|ᶜ¹-<> σ θ [ x == y ] = cong₂ [_==_] (Unificationₚ.<|-assoc θ σ x) (Unificationₚ.<|-assoc θ σ y)
+<|ᶜ¹-<> σ θ [ x == y + z ]
+  rewrite Unificationₚ.<|-assoc θ σ x
+  | Unificationₚ.<|-assoc θ σ y
+  | Unificationₚ.<|-assoc θ σ z
+  = refl
+
+_<|ᶜ_ : (∀ {k} → γ ∋= k → δ ⊢= k) → List (Constr γ) → List (Constr δ)
+_<|ᶜ_ f = List.map (f <|ᶜ¹_)
+
+<|ᶜ-<> : (σ : ∀ {k} → γ ∋= k → δ ⊢= k) → (θ : ∀ {k} → δ ∋= k → ξ ⊢= k) → ∀ c → (θ <|ᶜ (σ <|ᶜ c)) ≡ ((θ <> σ) <|ᶜ c)
+<|ᶜ-<> σ θ cs = trans (sym (Listₚ.map-compose cs)) (Listₚ.map-cong (<|ᶜ¹-<> σ θ) cs)
+
 
 infixr 2 !_
 pattern !_ t = _ , t
 
-<|-∋-▹-lookup : {xs : Vec (Type γ) (suc n)} (x : Fin (suc n))
-              → ∃[ ys ] (xs ∋ x ∶ Vec.lookup xs x ▹ ys)
-<|-∋-▹-lookup {xs = _ ∷ _} zero = ! zero
-<|-∋-▹-lookup {n = suc _} {xs = _ ∷ _} (suc x) = Product.map _ suc (<|-∋-▹-lookup x)
 
-{-
-<|-∋-▹ : (σ : ∀ {k} → γ Unification.∋ k → δ Unification.⊢ k)
-       → {xs : Vec (Type γ) (suc n)} {ys : Vec (Type γ) n} {x : Fin (suc n)} {t : Type γ}
-       → xs ∋ x ∶ t ▹ ys → Vec.map (σ <|_) xs ∋ x ∶ (σ <| t) ▹ Vec.map (σ <|_) ys
-<|-∋-▹ σ zero = zero
-<|-∋-▹ σ (suc x) = suc (<|-∋-▹ σ x)
+<< : γ ∋= k → (γ List.++ δ) ∋= k
+<< (! zero) = ! zero
+<< (! suc i) = Product.map _ suc (<< (! i))
 
-<|-∋ : (σ : ∀ {k} → γ Unification.∋ k → δ Unification.⊢ k)
-     → (xs : Vec (Type γ) (suc n)) {x : Fin (suc n)} {t : Type γ}
-     → xs ∋ x ∶ t → Vec.map (σ <|_) xs ∋ x ∶ (σ <| t)
-<|-∋ σ xs (fst₁ , x , snd₁) = {!!} , <|-∋-▹ σ x , {!!}
--}
+>> : γ ∋= k → (δ List.++ γ) ∋= k
+>> {δ = []} i = i
+>> {δ = _ ∷ _} i = Product.map _ suc (>> i)
 
-{-
-<|-⊢-∶ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {e : Expr n} {t : Type m}
-       → xs ⊢ e ∶ t → (σ <| xs) ⊢ e ∶ (σ <| t)
-<|-⊢-∶ σ top = top
-<|-⊢-∶ σ {xs} (var x) = var (<|-∋ σ xs x)
-<|-⊢-∶ σ (fst ⊢e) = fst (<|-⊢-∶ σ ⊢e)
-<|-⊢-∶ σ (snd ⊢e) = snd (<|-⊢-∶ σ ⊢e)
-<|-⊢-∶ σ (inl ⊢e) = inl (<|-⊢-∶ σ ⊢e)
-<|-⊢-∶ σ (inr ⊢e) = inr (<|-⊢-∶ σ ⊢e)
-<|-⊢-∶ σ (⊢e ‵, ⊢f) = (<|-⊢-∶ σ ⊢e) ‵, (<|-⊢-∶ σ ⊢f)
+<[_] : γ U⊢= u → (γ List.++ δ) U⊢= u
+<[_] = |> << <|_
 
-<|-⊢ : (σ : Fin m → Type l) {xs : Vec (Type m) n} {P : Proc n} → xs ⊢ P → (σ <| xs) ⊢ P
-<|-⊢ σ end = end
-<|-⊢ σ (new t ⊢P) = new _ (<|-⊢ σ ⊢P)
-<|-⊢ σ (comp ⊢P ⊢Q) = comp (<|-⊢ σ ⊢P) (<|-⊢ σ ⊢Q)
-<|-⊢ σ (recv e ⊢P) = recv (<|-⊢-∶ σ e) (<|-⊢ σ ⊢P)
-<|-⊢ σ (send e f ⊢P) = send (<|-⊢-∶ σ e) (<|-⊢-∶ σ f) (<|-⊢ σ ⊢P)
-<|-⊢ σ (case e ⊢P ⊢Q) = case (<|-⊢-∶ σ e) (<|-⊢ σ ⊢P) (<|-⊢ σ ⊢Q)
--}
+-- _<|[_] : Subst (n ℕ.+ m) l → UType u n → UType u l
+-- _<|[_] σ = (sub σ) <| ∘ <[_]
 
-_==_ = Unificationₚ.unify-sound
+[_]> : γ U⊢= u → (δ List.++ γ) U⊢= u
+[_]> = |> >> <|_
 
-{-
-<< : Fin n → Fin (n ℕ.+ m)
-<< i = Fin.inject≤ i (ℕₚ.m≤m+n _ _)
-
->> : Fin n → Fin (m ℕ.+ n)
->> = Fin.raise _
-
-<[_] : UType u n → UType u (n ℕ.+ m)
-<[_] = |> << <|
-
-_<|[_] : Subst (n ℕ.+ m) l → UType u n → UType u l
-_<|[_] σ = (sub σ) <| ∘ <[_]
-
-[_]> : UType u n → UType u (m ℕ.+ n)
-[_]> = |> >> <|
-
-[_]|>_ : UType u m → Subst (n ℕ.+ m) l → UType u l
-[_]|>_ x σ = ((sub σ) <|) [ x ]>
-
--}
-
-inferExpr : (e : Expr n) → Maybe (Σ[ γ ∈ KindCtx ] Σ[ t ∈ Type γ ] Σ[ Γ ∈ Ctx n γ ] Γ ⊢ e ∶ t)
-inferExpr top      = do let γ , Γ , unΓ = fresh
-                        return (! ‵⊤ , Γ , top unΓ)
-inferExpr {n = suc _} (var x)  = do let γ , Γ , unΓ = fresh
-                                    let ! ∋x = <|-∋-▹-lookup x
-                                    return ((! Vec.lookup Γ x , Γ , var (! ∋x , {!unΓ!})))
-inferExpr (fst e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
-                        let shape = var (! zero) ‵× var (! suc zero)
-                        ! σ , sound ← {!<[ t ]!} == {![ shape ]>!}
-                        let ⊢e' = {!<|-⊢-∶ (sub σ) (<|-⊢-∶ (|> {!<<!}) ⊢e)!}
-                        return {!(! [ var zero ]|> σ , σ <|[ Γ₁ ] , fst (subst (_ ⊢ _ ∶_) sound ⊢e'))!}
-inferExpr (snd e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
-                        let shape = var (_ , zero) ‵× var (_ , suc zero)
-                        ! σ , sound ← {!<[ t ]!} == {![ shape ]>!}
-                        let ⊢e' = {!<|-⊢-∶ (sub σ) (<|-⊢-∶ (|> {!<<!}) ⊢e)!}
-                        return {!(! [ var (suc zero) ]|> σ , σ <|[ Γ₁ ] , snd (subst (_ ⊢ _ ∶_) sound ⊢e'))!}
-inferExpr (inl e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
-                        let ⊢e' = {!<|-⊢-∶ (|> {!<<!}) ⊢e!}
-                        return {!(! <[ t ] ‵+ [ var (zero {zero}) ]> , <[ Γ₁ ] , inl ⊢e')!}
-inferExpr (inr e)  = do ! t , Γ₁ , ⊢e ← inferExpr e
-                        let ⊢e' = {!<|-⊢-∶ (|> {!>>!}) ⊢e!}
-                        return {!(! <[ var (zero {zero}) ] ‵+ [_]> {m = 1} t , [ Γ₁ ]> , inr ⊢e')!}
-inferExpr (e ‵, f) = do ! t , Γ₁ , ⊢e ← inferExpr e
-                        ! s , Γ₂ , ⊢f ← inferExpr f
-                        ! σ , sound ← {!<[ Γ₁ ]!} == {![ Γ₂ ]>!}
-                        let ⊢e' = {!<|-⊢-∶ (sub σ) (<|-⊢-∶ (|> {!<<!}) ⊢e)!}
-                        let ⊢f' = {!<|-⊢-∶ (sub σ) (<|-⊢-∶ (|> {!>>!}) ⊢f)!}
-                        return {!(! (σ <|[ t ]) ‵× ([ s ]|> σ) , σ <|[ Γ₁ ] , (⊢e' ‵, subst (_⊢ _ ∶ _) (sym sound) ⊢f'))!}
+-- [_]|>_ : UType u m → Subst (n ℕ.+ m) l → UType u l
+-- [_]|>_ x σ = ((sub σ) <|) [ x ]>
 
 
 
-infer : (p : Proc n) → Maybe (Σ[ γ ∈ KindCtx ] Σ[ Γ ∈ Ctx n γ ] Γ ⊢ p)
-infer end          = return {!!} -- (! fresh , end)
-infer (new p)      = do ! t ∷ Γ , ⊢p ← infer p
-                        return (! Γ , new t ⊢p)
-infer (comp p q)   = do ! Γ₁ , ⊢p ← infer p
-                        ! Γ₂ , ⊢q ← infer q
-                        {!!}
-                        -- ! σ , sound ← <[ Γ₁ ] == [ Γ₂ ]>
-                        -- let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> <<) ⊢p)
-                        -- let ⊢q' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢q)
-                        -- return (! σ <|[ Γ₁ ] , comp ⊢p' (subst (_⊢ _) (sym sound) ⊢q'))
-infer (recv e p)   = do ! c , Γ₁ , ⊢e ← inferExpr e
-                        ! v ∷ Γ₂ , ⊢p ← infer p
-                        {!!}
-                        -- ! σ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
-                        -- let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        -- let ⊢e' = <|-⊢-∶ (sub σ) (<|-⊢-∶ (|> <<) ⊢e)
-                        -- let ⊢p' = <|-⊢ (sub σ) (<|-⊢ (|> >>) ⊢p)
-                        -- return (! σ <|[ Γ₁ ] , recv (subst (_ ⊢ _ ∶_) (c#v-sound) ⊢e')
-                        --                             (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p'))
-infer (send e f p) = do ! c , Γ₁ , ⊢e ← inferExpr e
-                        ! v , Γ₂ , ⊢f ← inferExpr f
-                        ! Γ₃ , ⊢p ← infer p
-                        {!!}
-                        -- ! σ₁ , sound ← <[ c ∷ Γ₁ ] == [ # v ∷ Γ₂ ]>
-                        -- ! σ₂ , Γ₁Γ₃-sound ← <[ σ₁ <|[ Γ₁ ] ] == [ Γ₃ ]>
-                        -- let c#v-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        -- let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> <<) ⊢e)))
-                        -- let ⊢f' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) (<|-⊢-∶ (sub σ₁) (<|-⊢-∶ (|> >>) ⊢f)))
-                        -- let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) ⊢p)
-                        -- return (! [ Γ₃ ]|> σ₂ , send (subst₂ (_⊢ _ ∶_) Γ₁Γ₃-sound (cong (sub σ₂ <| ∘ |> << <|) c#v-sound) ⊢e')
-                        --                              (subst (_⊢ _ ∶ _) (trans (cong (sub σ₂ <| ∘ |> << <|) (sym Γ₁Γ₂-sound)) Γ₁Γ₃-sound) ⊢f')
-                        --                              ⊢p')
-infer (case e p q) = do ! v , Γ₁ , ⊢e ← inferExpr e
-                        ! l ∷ Γ₂ , ⊢p ← infer p
-                        ! r ∷ Γ₃ , ⊢q ← infer q
-                        {!!}
-                        -- ! σ₁ , Γ₂Γ₃-sound ← <[ Γ₂ ] == [ Γ₃ ]>
-                        -- ! σ₂ , sound ← <[ v ∷ Γ₁ ] == [ (σ₁ <|[ l ]) ‵+ ([ r ]|> σ₁) ∷ σ₁ <|[ Γ₂ ] ]>
-                        -- let lrv-sound , Γ₁Γ₂-sound = Vecₚ.∷-injective sound
-                        -- let ⊢e' = <|-⊢-∶ (sub σ₂) (<|-⊢-∶ (|> <<) ⊢e)
-                        -- let ⊢p' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> <<) ⊢p)))
-                        -- let ⊢q' = <|-⊢ (sub σ₂) (<|-⊢ (|> >>) (<|-⊢ (sub σ₁) (<|-⊢ (|> >>) ⊢q)))
-                        -- return (! σ₂ <|[ Γ₁ ] , case (subst (_ ⊢ _ ∶_) lrv-sound ⊢e')
-                        --                              (subst (λ ● → (_ ∷ ●) ⊢ _) (sym Γ₁Γ₂-sound) ⊢p')
-                        --                              (subst (λ ● → (_ ∷ ●) ⊢ _) (sym (trans Γ₁Γ₂-sound (cong (sub σ₂ <| ∘ |> >> <|) Γ₂Γ₃-sound))) ⊢q'))
+UnboundSubst : ∀ {γ δ} → Set
+UnboundSubst {γ} {δ} = ∀ {k} → γ ∋= k → δ ⊢= k
+
+ConstrSubst : ∀ {γ δ p} → (UnboundSubst {γ} {δ} → Set p) → Set p
+ConstrSubst P = Σ[ c ∈ List (Constr _) ] ((σ : UnboundSubst) → ⟦ σ <|ᶜ c ⟧ → P σ)
+syntax ConstrSubst {γ} {δ} (λ σ → P) = ∀⟦ σ ∶ γ ↦ δ ⟧ P
+
+
+fresh : Σ[ γ ∈ KindCtx ] Ctx n γ
+fresh {zero} = [] , []
+fresh {suc n} = Product.map (type ∷_) (λ Γ → (var (! zero)) ∷ (Vec.map (|> (Product.map _ suc) <|_) Γ)) fresh
+
+un-constr : (t : γ ∋= k) → Σ[ c ∈ Constr _ ] ((σ : UnboundSubst {γ} {δ}) → ⟦ σ <|ᶜ¹ c ⟧ᶜ¹ → +-un (σ t))
+un-constr (_ , zero) = ([ var (! zero) == var (! zero) + var (! zero) ]) , λ where σ x → x
+un-constr (_ , suc i) = let c' , p' = un-constr (! i) in (|> (Product.map _ suc)  <|ᶜ¹ c') , (λ where σ x → p' (σ ∘ Product.map _ suc) (subst ⟦_⟧ᶜ¹ (<|ᶜ¹-<> _ _ _) x))
+
+un-constr' : let γ = List.replicate n type in Σ[ Γ ∈ Ctx n γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ (⊎-un (Vec.map (σ <|_) Γ))
+un-constr' {zero} = [] , [] , λ _ _ → []
+un-constr' {suc n} =
+  let Γ' , cs' , ps = un-constr' {n} in
+  let c' , p = un-constr (! zero) in
+  var (! zero) ∷ Vec.map (|> (Product.map _ suc) <|_) Γ'
+  , c' ∷ (|> (Product.map _ suc) <|ᶜ cs')
+  , λ where σ (x ∷ xs) → p σ x ∷ subst (λ ● → ● ≔ ● ⊎ ●) (trans (Vecₚ.map-cong (sym ∘ (Unificationₚ.<|-assoc σ _)) _) (Vecₚ.map-∘ _ _ _)) (ps (σ <> |> (Product.map _ suc)) (subst (All _) (trans (sym (Listₚ.map-compose cs')) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) cs')) xs))
+
+un-var' : let γ = List.replicate (suc n) type in (i : Fin (suc n)) (t : Type γ) → Σ[ Γ ∈ Ctx (suc n) γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ ((Vec.map (σ <|_) Γ) ∋ i ∶ (σ <| t) ′)
+un-var' {n = n} i t =
+  let Γ , cs , ps = un-constr' {n = suc n} in
+  Vec._[_]≔_ Γ i t , cs
+  , λ σ x j → (λ {refl → trans (Vecₚ.lookup-map j (_<|_ σ) (Vec._[_]≔_ Γ i t)) (cong (σ <|_) (Vecₚ.lookup∘updateAt i Γ))})
+            , (λ {j≢i → subst +-un {!trans (Vecₚ.lookup-map j (_<|_ σ) (Vec._[_]≔_ Γ i t)) {!!}!} {!ps σ x!}})
+
+
+un-var : let γ = List.replicate (suc n) type in (i : Fin (suc n)) (t : Type γ) → Σ[ Γ ∈ Ctx (suc n) γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ (Σ[ Δ ∈ Ctx n δ ] ((Vec.map (σ <|_) Γ ∋ i ∶ σ <| t ▹ Δ) × ⊎-un Δ))
+un-var zero t =
+  let Γ , cs , ps = un-constr' in
+  t ∷ {!!} , cs , λ σ x → Vec.map (σ <|_) {!!} , zero , {!ps σ x!}
+un-var {n = suc _} (suc i) t =
+  {!!}
+
+map-==-+ : Ctx n γ → Ctx n δ → Ctx n θ → List (Constr (γ List.++ (δ List.++ θ)))
+map-==-+ [] [] [] = []
+map-==-+ {γ = γ} (x ∷ Γ) (y ∷ Δ) (z ∷ Θ) = [ <[ x ] == [_]> {δ = γ} <[ y ] + [_]> {δ = γ} [ z ]> ] ∷ map-==-+ Γ Δ Θ
+
+⟦map-==-+⟧ : ∀ {ξ} (Γ : Ctx n γ) (Δ : Ctx n δ) (Θ : Ctx n θ) (σ : UnboundSubst {γ List.++ δ List.++ θ} {ξ}) → ⟦ σ <|ᶜ map-==-+ Γ Δ Θ ⟧
+           → Vec.map (_<|_ σ) (Vec.map <[_] Γ) ≔ Vec.map (_<|_ σ) (Vec.map (([_]> {δ = γ}) ∘ <[_]) Δ) ⊎ Vec.map (_<|_ σ) (Vec.map (([_]> {δ = γ}) ∘ [_]>) Θ)
+⟦map-==-+⟧ [] [] [] σ C = []
+⟦map-==-+⟧ (x ∷ Γ) (y ∷ Δ) (z ∷ Θ) σ (c ∷ C) = c ∷ (⟦map-==-+⟧ Γ Δ Θ σ C)
+
+constrExpr : (e : Expr n) → Σ[ γ ∈ KindCtx ] Σ[ Γ ∈ Ctx n γ ] Σ[ t ∈ Type γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ ((Vec.map (σ <|_) Γ) ⊢ e ∶ (σ <| t))
+constrExpr {n = n} top =
+  let Γ , cs , f = un-constr' in
+  _ , Γ , ‵⊤ , cs , λ where σ xs → top (f σ xs)
+constrExpr {n = suc _} (var x) = {!!} , {!!} , {!!} , {!!} , λ σ x₁ → var (! {!!} , {!!})
+constrExpr (fst e) =
+  let γ' , Γ' , t , cs' , ps' = constrExpr e in
+  let +-un-s , p' = un-constr (! (suc zero)) in
+  let t' = |> (Product.map (λ γ → type ∷ type ∷ γ) (λ x → suc (suc x))) <| t in
+  type ∷ type ∷ γ'
+  , Vec.map (|> (Product.map _ λ x → suc (suc x)) <|_) Γ'
+  , var (! zero)
+  , [ t' == var (! zero) ‵× var (! suc zero) ] ∷ +-un-s ∷ (|> (Product.map _ (λ x → suc (suc x)))  <|ᶜ cs')
+  , λ where σ xs → let t≡0×1 , xs = All.uncons xs in
+                   let ⟦+-un-s⟧ , xs = All.uncons xs in
+                   fst (p' σ ⟦+-un-s⟧)
+                       (subst (λ ● → ● ⊢ _ ∶ (σ <| (var (! zero) ‵× var (! suc zero)))) (trans (Vecₚ.map-cong (sym ∘ (Unificationₚ.<|-assoc σ _)) _) (Vecₚ.map-∘ _ _ _))
+                       (subst (λ ● → Vec.map ((σ <> |> (Product.map _ (λ x → suc (suc x)))) <|_) Γ' ⊢ e ∶ ●) t≡0×1
+                       (subst (λ ● → Vec.map ((σ <> |> (Product.map _ (λ x → suc (suc x)))) <|_) Γ' ⊢ e ∶ ●) (sym (Unificationₚ.<|-assoc σ (|> (Product.map _ (λ x → suc (suc x)))) t))
+                       (ps' (σ <> |> (Product.map _ (λ x → suc (suc x)))) (subst (All _) (trans (sym (Listₚ.map-compose _)) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) _)) xs)))))
+constrExpr (snd e) = {!!}
+constrExpr (inl e) = {!!}
+constrExpr (inr e) = {!!}
+constrExpr {δ = δ} (l ‵, r) =
+  let lγ , lΓ , lt , lcs , lps = constrExpr {δ = δ} l in
+  let rγ , rΓ , rt , rcs , rps = constrExpr {δ = δ} r in
+  let mγ , mΓ = fresh in
+  mγ List.++ lγ List.++ rγ
+  , Vec.map <[_] mΓ
+  , [_]> {δ = mγ} (<[ lt ] ‵× [ rt ]>)
+  , map-==-+ mΓ lΓ rΓ List.++ ((|> (>> {δ = mγ}) ∘ <<) <|ᶜ lcs List.++ (|> ((>> {δ = mγ}) ∘ >>) <|ᶜ rcs))
+  , λ where σ xs → pair (⟦map-==-+⟧ mΓ lΓ rΓ σ (Allₚ.map⁺ (Allₚ.++⁻ˡ (map-==-+ mΓ lΓ rΓ) (Allₚ.map⁻ xs)))) {!lps ? ?!} {!!}
+
+
+constrProc : (p : Proc n) → Σ[ γ ∈ KindCtx ] Σ[ Γ ∈ Ctx n γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ ((Vec.map (σ <|_) Γ) ⊢ p)
+constrProc end =
+  let Γ , cs , f = un-constr' in
+  _ , Γ , cs , λ σ x → end (f σ x)
+constrProc (new p)
+  with γ , (t ∷ Γ) , cs , f ← constrProc p
+  = γ , Γ , cs , λ σ x → new (σ <| t) (f σ x)
+constrProc (comp p p₁) = {!!}
+constrProc (recv x p) = {!!}
+constrProc (send x x₁ p) = {!!}
+constrProc (case x p p₁) = {!!}

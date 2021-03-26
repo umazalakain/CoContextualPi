@@ -47,6 +47,8 @@ data _∋_∶_▹_ : Ctx n γ → Fin n → Type γ → Ctx m γ → Set where
 _∋_∶_ : Ctx (suc n) γ → Fin (suc n) → Type γ → Set
 _∋_∶_ {n = n} Γ x t = Σ[ Δ ∈ Ctx n _ ] Γ ∋ x ∶ t ▹ Δ × ⊎-un Δ
 
+_∋_∶_′ : Ctx (suc n) γ → Fin (suc n) → Type γ → Set
+_∋_∶_′ Γ x t = ∀ i → (i ≡ x → Vec.lookup Γ i ≡ t) × (i ≢ x → +-un (Vec.lookup Γ i))
 
 data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
   top : ⊎-un Γ
@@ -69,7 +71,7 @@ data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
   inr : Γ ⊢ e ∶ s
       → Γ ⊢ inr e ∶ (t ‵+ s)
 
-  _‵,_ : Γ ≔ Δ ⊎ Ξ
+  pair : Γ ≔ Δ ⊎ Ξ
        → Δ ⊢ e ∶ s
        → Ξ ⊢ f ∶ t
        → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
