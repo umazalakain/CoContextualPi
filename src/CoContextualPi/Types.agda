@@ -84,7 +84,7 @@ pattern ω∙ = Unification.con omega []
 
 private
   variable
-    γ : KindCtx
+    γ δ : KindCtx
     x y iz ix iy oz ox oy : Usage γ
     a b c t lz lx ly rz rx ry : Type γ
 
@@ -111,6 +111,9 @@ _~_ {k = k} s t = (var (! zero) ≔ |> !suc <| s + (|> !suc <| t))
 
 Ctx : ℕ → KindCtx → Set
 Ctx n γ = Vec (Type γ) n
+
+_<|ᵛ_ : (∀ {k} → γ ∋= k → δ ⊢= k) → Ctx n γ → Ctx n δ
+_<|ᵛ_ σ = Vec.map (σ <|_)
 
 private
   variable
