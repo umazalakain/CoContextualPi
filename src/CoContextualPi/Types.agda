@@ -88,6 +88,8 @@ private
     x y iz ix iy oz ox oy : Usage γ
     a b c t lz lx ly rz rx ry : Type γ
 
+
+
 data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set where
   -- NOTE: x ≔ y + z is not necessarily unique
   left   : x  ≔ x  + 0∙
@@ -102,7 +104,7 @@ data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set wh
          → (lz ‵+ rz) ≔ (lx ‵+ rx) + (ly ‵+ ry)
 
 _~_ : γ ⊢= k → γ ⊢= k → Set
-_~_ {k = k} s t = (var (! zero) ≔ |> (Product.map _ suc) <| s + (|> (Product.map _ suc ) <| t))
+_~_ {k = k} s t = (var (! zero) ≔ |> !suc <| s + (|> !suc <| t))
 
 +-un : γ ⊢= k → Set
 +-un t = t ≔ t + t

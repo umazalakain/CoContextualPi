@@ -73,19 +73,19 @@ thick-reverse (suc x) (! suc y) eq
   with inj₁ r ← thick x (! y)
      | [ qe ] ← inspect (thick x) (! y)
   with refl ← eq
-  = Product.map (Product.map _ suc) (cong (Product.map _ suc)) (thick-reverse x (! y) qe)
+  = Product.map !suc (cong !suc) (thick-reverse x (! y) qe)
 
 nothing-thick : (x : γ ∋= k ▹ δ) (y : γ ∋= k) → ∀ {eq} → thick x y ≡ inj₂ eq → (! x) ≡ y
 nothing-thick zero (! zero) eq = refl
 nothing-thick (suc x) (! suc y) _
   with inj₂ r ← thick x (! y)
   | [ qe ] ← inspect (thick x) (! y)
-  = cong (Product.map _ suc) (nothing-thick x (! y) qe)
+  = cong !suc (nothing-thick x (! y) qe)
 
 thick-thin : (x : δ ∋= k' ▹ γ) (y : γ ∋= k) → thick x (thin x y) ≡ inj₁ y
 thick-thin zero y = refl
 thick-thin (suc x) (! zero) = refl
-thick-thin (suc x) (! suc y) = cong (Sum.map₁ (Product.map _ suc)) (thick-thin x (! y))
+thick-thin (suc x) (! suc y) = cong (Sum.map₁ !suc) (thick-thin x (! y))
 
 check-thin : (i : δ ∋= k' ▹ γ) (t : δ U⊢= u) {t' : γ U⊢= u}
            → check i t ≡ just t' → t ≡ |> (thin i) <| t'

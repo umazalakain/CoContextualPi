@@ -71,6 +71,12 @@ data _∋=_▹_ : KindCtx → Kind → KindCtx → Set where
 _∋=_ : KindCtx → Kind → Set
 γ ∋= x = ∃ (γ ∋= x ▹_)
 
+!zero : (k ∷ γ) ∋= k
+!zero = ! zero
+
+!suc : γ ∋= k → (k' ∷ γ) ∋= k
+!suc x = Product.map _ suc x
+
 data _⊢=_ (γ : KindCtx) : Kind → Set where
   var : γ ∋= k → γ ⊢= k
   con : Con k ks → All (γ ⊢=_) ks → γ ⊢= k
@@ -88,7 +94,7 @@ private variable u : Univ
 var-injective : {x : γ ∋= k} {y : γ ∋= k} → var x ≡ var y → x ≡ y
 var-injective refl = refl
 
-suc-injective : {x : γ ∋= k} {y : γ ∋= k} → _≡_ {A = _ ∋= _} (Product.map (k' ∷_) suc x) (Product.map (k' ∷_) suc y) → x ≡ y
+suc-injective : {x : γ ∋= k} {y : γ ∋= k} → _≡_ {A = _ ∋= _} (!suc {k' = k'} x) (!suc y) → x ≡ y
 suc-injective refl = refl
 
 kind-injective : {nx : Con k ks} {ny : Con k ks'} {asx : All (γ ⊢=_) ks} {asy : All (γ ⊢=_) ks'}
@@ -105,7 +111,7 @@ decEq-∋ : (x y : γ ∋= k) → Dec (x ≡ y)
 decEq-∋ (! zero) (! zero) = yes refl
 decEq-∋ (! zero) (! suc y) = no (λ ())
 decEq-∋ (! suc x) (! zero) = no (λ ())
-decEq-∋ (! suc x) (! suc y) = Dec.map′ (cong (Product.map (_ ∷_) suc)) (suc-injective) (decEq-∋ (! x) (! y))
+decEq-∋ (! suc x) (! suc y) = Dec.map′ (cong !suc) (suc-injective) (decEq-∋ (! x) (! y))
 
 decEq-⊢ : (x y : γ U⊢= u) → Dec (x ≡ y)
 decEq-⊢ {u = one _} (var x) (con s ts) = no λ ()
@@ -148,9 +154,9 @@ f <> g = f <|_ ∘ g
 
 -- A renaming (thin x) pushes up everithing x and above
 thin : δ ∋= k' ▹ γ → γ ∋= k → δ ∋= k
-thin zero (! y) = ! suc y
-thin (suc x) (! zero) = ! zero
-thin (suc x) (! suc y) = Product.map _ suc (thin x (! y))
+thin zero y = !suc y
+thin (suc x) (! zero) = !zero
+thin (suc x) (! suc y) = !suc (thin x (! y))
 
 -- A renaming (thick x) tries to lower everything above x
 -- Only succeeds if x itself is not present
@@ -158,7 +164,7 @@ thick : γ ∋= k' ▹ δ → γ ∋= k → (δ ∋= k) ⊎ (k ≡ k')
 thick zero (! zero) = inj₂ refl
 thick zero (! suc y) = inj₁ (! y)
 thick (suc x) (! zero) = inj₁ (! zero)
-thick (suc x) (! suc y) = Sum.map₁ (Product.map _ suc) (thick x (! y))
+thick (suc x) (! suc y) = Sum.map₁ !suc (thick x (! y))
 
 -- Substitution of one particular variable
 --

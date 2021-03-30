@@ -80,12 +80,12 @@ pattern !_ t = _ , t
 
 
 << : γ ∋= k → (γ List.++ δ) ∋= k
-<< (! zero) = ! zero
-<< (! suc i) = Product.map _ suc (<< (! i))
+<< (! zero) = !zero
+<< (! suc i) = !suc (<< (! i))
 
 >> : γ ∋= k → (δ List.++ γ) ∋= k
 >> {δ = []} i = i
->> {δ = _ ∷ _} i = Product.map _ suc (>> i)
+>> {δ = _ ∷ _} i = !suc (>> i)
 
 <[_] : γ U⊢= u → (γ List.++ δ) U⊢= u
 <[_] = |> << <|_
@@ -111,20 +111,20 @@ syntax ConstrSubst {γ} {δ} (λ σ → P) = ∀⟦ σ ∶ γ ↦ δ ⟧ P
 
 fresh : Σ[ γ ∈ KindCtx ] Ctx n γ
 fresh {zero} = [] , []
-fresh {suc n} = Product.map (type ∷_) (λ Γ → (var (! zero)) ∷ (Vec.map (|> (Product.map _ suc) <|_) Γ)) fresh
+fresh {suc n} = Product.map (type ∷_) (λ Γ → (var !zero) ∷ (Vec.map (|> !suc <|_) Γ)) fresh
 
 un-constr : (t : γ ∋= k) → Σ[ c ∈ Constr _ ] ((σ : UnboundSubst {γ} {δ}) → ⟦ σ <|ᶜ¹ c ⟧ᶜ¹ → +-un (σ t))
 un-constr (_ , zero) = ([ var (! zero) == var (! zero) + var (! zero) ]) , λ where σ x → x
-un-constr (_ , suc i) = let c' , p' = un-constr (! i) in (|> (Product.map _ suc)  <|ᶜ¹ c') , (λ where σ x → p' (σ ∘ Product.map _ suc) (subst ⟦_⟧ᶜ¹ (<|ᶜ¹-<> _ _ _) x))
+un-constr (_ , suc i) = let c' , p' = un-constr (! i) in (|> !suc  <|ᶜ¹ c') , (λ where σ x → p' (σ ∘ !suc) (subst ⟦_⟧ᶜ¹ (<|ᶜ¹-<> _ _ _) x))
 
 un-constr' : let γ = List.replicate n type in Σ[ Γ ∈ Ctx n γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ (⊎-un (Vec.map (σ <|_) Γ))
 un-constr' {zero} = [] , [] , λ _ _ → []
 un-constr' {suc n} =
   let Γ' , cs' , ps = un-constr' {n} in
   let c' , p = un-constr (! zero) in
-  var (! zero) ∷ Vec.map (|> (Product.map _ suc) <|_) Γ'
-  , c' ∷ (|> (Product.map _ suc) <|ᶜ cs')
-  , λ where σ (x ∷ xs) → p σ x ∷ subst (λ ● → ● ≔ ● ⊎ ●) (trans (Vecₚ.map-cong (sym ∘ (Unificationₚ.<|-assoc σ _)) _) (Vecₚ.map-∘ _ _ _)) (ps (σ <> |> (Product.map _ suc)) (subst (All _) (trans (sym (Listₚ.map-compose cs')) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) cs')) xs))
+  var (! zero) ∷ Vec.map (|> !suc <|_) Γ'
+  , c' ∷ (|> !suc <|ᶜ cs')
+  , λ where σ (x ∷ xs) → p σ x ∷ subst (λ ● → ● ≔ ● ⊎ ●) (trans (Vecₚ.map-cong (sym ∘ (Unificationₚ.<|-assoc σ _)) _) (Vecₚ.map-∘ _ _ _)) (ps (σ <> |> !suc) (subst (All _) (trans (sym (Listₚ.map-compose cs')) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) cs')) xs))
 
 un-var' : let γ = List.replicate (suc n) type in (i : Fin (suc n)) (t : Type γ) → Σ[ Γ ∈ Ctx (suc n) γ ] ∀⟦ σ ∶ γ ↦ δ ⟧ ((Vec.map (σ <|_) Γ) ∋ i ∶ (σ <| t) ′)
 un-var' {n = n} i t =
@@ -158,18 +158,18 @@ constrExpr {n = suc _} (var x) = {!!} , {!!} , {!!} , {!!} , λ σ x₁ → var 
 constrExpr (fst e) =
   let γ' , Γ' , t , cs' , ps' = constrExpr e in
   let +-un-s , p' = un-constr (! (suc zero)) in
-  let t' = |> (Product.map (λ γ → type ∷ type ∷ γ) (λ x → suc (suc x))) <| t in
+  let t' = |> (!suc ∘ !suc) <| t in
   type ∷ type ∷ γ'
-  , Vec.map (|> (Product.map _ λ x → suc (suc x)) <|_) Γ'
+  , Vec.map (|> (!suc ∘ !suc) <|_) Γ'
   , var (! zero)
-  , [ t' == var (! zero) ‵× var (! suc zero) ] ∷ +-un-s ∷ (|> (Product.map _ (λ x → suc (suc x)))  <|ᶜ cs')
+  , [ t' == var (! zero) ‵× var (! suc zero) ] ∷ +-un-s ∷ (|> (!suc ∘ !suc)  <|ᶜ cs')
   , λ where σ xs → let t≡0×1 , xs = All.uncons xs in
                    let ⟦+-un-s⟧ , xs = All.uncons xs in
                    fst (p' σ ⟦+-un-s⟧)
                        (subst (λ ● → ● ⊢ _ ∶ (σ <| (var (! zero) ‵× var (! suc zero)))) (trans (Vecₚ.map-cong (sym ∘ (Unificationₚ.<|-assoc σ _)) _) (Vecₚ.map-∘ _ _ _))
-                       (subst (λ ● → Vec.map ((σ <> |> (Product.map _ (λ x → suc (suc x)))) <|_) Γ' ⊢ e ∶ ●) t≡0×1
-                       (subst (λ ● → Vec.map ((σ <> |> (Product.map _ (λ x → suc (suc x)))) <|_) Γ' ⊢ e ∶ ●) (sym (Unificationₚ.<|-assoc σ (|> (Product.map _ (λ x → suc (suc x)))) t))
-                       (ps' (σ <> |> (Product.map _ (λ x → suc (suc x)))) (subst (All _) (trans (sym (Listₚ.map-compose _)) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) _)) xs)))))
+                       (subst (λ ● → Vec.map ((σ <> |> (!suc ∘ !suc)) <|_) Γ' ⊢ e ∶ ●) t≡0×1
+                       (subst (λ ● → Vec.map ((σ <> |> (!suc ∘ !suc)) <|_) Γ' ⊢ e ∶ ●) (sym (Unificationₚ.<|-assoc σ (|> (!suc ∘ !suc)) t))
+                       (ps' (σ <> |> (!suc ∘ !suc)) (subst (All _) (trans (sym (Listₚ.map-compose _)) (Listₚ.map-cong (<|ᶜ¹-<> _ σ) _)) xs)))))
 constrExpr (snd e) = {!!}
 constrExpr (inl e) = {!!}
 constrExpr (inr e) = {!!}
