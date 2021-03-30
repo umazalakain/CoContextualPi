@@ -1,10 +1,39 @@
 
-# Constraint Satisfaction
+# Introduction
 
-Without linearity, type unification can proceed by eagerly solving equality constraints into substitutions, thus never having to accumulate constraints.
-However we cannot always eagerly solve constraints once we add usage annotations to the inputs and outputs of channels.
+Type inference for the pi calculus with linear and shared channel types.
+Composite sum and product types.
+**TODO: recursion/replication**
+**TODO: bounded linear types?**
+**TODO: type assertions**
 
-## Example
+Co-contextual type inference: traverses the syntax bottom up, collecting constraints on the typing context.
+Shared types can be eagerly unified and the resulting substitutions applied.
+Adding usage annotations to types complicates things: we need to keep track of the fact that `x = y + z`, even if `x`, `y` and `z` are unknowns.
+This is true for both usage annotations and types containing usage annotations.
+We cannot, thus, solve eagerly.
+The solution is to keep these constraints around and defer the solution.
+It might even be that some constraints have more than one possible solution.
+We cannot confine ourselves to an eager choice.
+At the same time, we need to show that the constraints that we postulate are enough to solve the problem.
+This gives raise to the following soundness theorem:
+
+```
+forall (p : Proc). exists (gamma : Ctx). exists (constraints : List Constraint). forall (omega : Substitution). [[ omega <| constraints ]] -> (omega <| gamma) |- P
+```
+
+Some constraints can however be simplified.
+In this case, we need to show that the simplified version is enough to entail the original constraints:
+
+```
+forall (c : List Constraint). exists (subc : List Constraint). forall (omega : Substitution). [[ omega <| subc ]] -> [[ omega <| c ]]
+```
+
+These normalization could in fact be performed eagerly, but we find it is best to separate stages.
+The resulting set of normalized constraints has had equality constraints substituted out.
+The only constraints left are splits between two type metavariables, splits between two usage metavariables, and splits between a usage constant and a usage metavariable.
+
+### Example Problem
 
 Consider the program `send a <- (); send x <- a; end` that sends a unit across `a`, then sends `a` across `x` and terminates.
 Cocontextual type inference traverses the program bottom up, so we start by inferring the context requirements for `end`:
@@ -114,14 +143,22 @@ send a <- (); send x <- a; end | a : #?ai''(1 + ?ao'') Unit | x : #01 (#?ai''(1 
 
 Which is open term polymorphic on the multiplicities `?ai''` and `?ao''` of `a` that are sent over `x`.
 
-## Discussion
+## Type System
 
-Constraints are either between type metavariables or usage annotations (containing both constants and variables).
-When a type metavariable is substituted in a constraint, the result can be simplified into constraints between type metavariables or usage annotations.
-Constraints result in substitutions, which must then be applied to both the typing context and other constraints.
+The type system is the usual standard type system based on context splits that one defines for the pi calculus.
+Usage annotations are `0`, `1`, `omega`.
+Context splits are defined as follows:
 
-Constraints on usage annotations form a binary tree where the nodes are metavariables and the leaves are metavariables or constants.
-In this tree `0`s can be removed, `omega`s are propagated upwards, and constants can be added up.
+```
+x     = x + 0
+x     = 0 + x
+omega = y + z
+```
 
-Sound constraint solving for `x = y + z` has the signature `forall xyz. Maybe (exists subst. exists constrs. [[ constrs ]] -> subst <| x = subst <| y + subst <| z)`.
-That is, a context split constraint can be satisfied if there exists a substitution `subst` and some new constraints `constrs` such that if those new constraints `constrs` are satisfied, then substituting `subst` in `x`, `y` and `z` pointwise satisfies the constraint. `x = y + z` `x = y + z` `x = y + z`
+Only the usage annotations at the upper level of a channel type are split: the usage annotations of any channel type that is send as data are preserved on all three sides of the split.
+
+## Constraint Satisfaction
+
+Constraints are defined as either equality constraints `S == T`, or usage splits `S == T + R`.
+The `[[_]]` function interprets them into their type counterparts `S \equiv T` and `S := T + R`.
+Substituting into a constraint substitutes pointwise. 
