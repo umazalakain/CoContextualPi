@@ -9,6 +9,7 @@ open import Data.Product as Product using (_,_; Σ-syntax)
 open import Data.List.Base as List using (List; []; _∷_)
 open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
 
+open import CoContextualPi.Syntax using (Syntax)
 
 module CoContextualPi.Types where
 
@@ -54,11 +55,17 @@ decEqCons omega zero = no (λ ())
 decEqCons omega one = no (λ ())
 decEqCons omega omega = yes refl
 
+SYNTAX : Syntax
+Syntax.Kind SYNTAX = Kind
+Syntax.Con SYNTAX = Cons
+Syntax.decEqKind SYNTAX = decEqKind
+Syntax.decEqCon SYNTAX = decEqCons
+
 import CoContextualPi.StrictUnification
-module Unification = CoContextualPi.StrictUnification Kind decEqKind Cons decEqCons
+module Unification = CoContextualPi.StrictUnification SYNTAX
 open Unification public
 import CoContextualPi.StrictUnification.Properties
-module Unificationₚ = CoContextualPi.StrictUnification.Properties Kind decEqKind Cons decEqCons
+module Unificationₚ = CoContextualPi.StrictUnification.Properties SYNTAX
 
 Usage : KindCtx → Set
 Usage γ = γ ⊢= multiplicity

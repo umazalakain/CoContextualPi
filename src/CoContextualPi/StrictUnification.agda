@@ -28,10 +28,10 @@ import Data.Nat.Properties as ℕₚ
 import Data.Vec.Properties as Vecₚ
 import Data.List.Properties as Listₚ
 
+open import CoContextualPi.Syntax using (Syntax)
 
-module CoContextualPi.StrictUnification
-  (Kind : Set)                   (decEqKind : ∀          (x y : Kind)     → Dec (x ≡ y))
-  (Con : Kind → List Kind → Set) (decEqCon  : ∀ {k} {ks} (x y : Con k ks) → Dec (x ≡ y)) where
+module CoContextualPi.StrictUnification (S : Syntax) where
+open Syntax S
 
 private
   -- Help ourselves to some goodies

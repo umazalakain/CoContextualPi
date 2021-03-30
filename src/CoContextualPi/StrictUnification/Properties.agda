@@ -20,11 +20,11 @@ import Data.Vec.Properties as Vecₚ
 import Data.List.Properties as Listₚ
 import Data.Sum.Properties as Sumₚ
 
-module CoContextualPi.StrictUnification.Properties
-  (Kind : Set)                   (decEqKind : ∀          (x y : Kind)     → Dec (x ≡ y))
-  (Con : Kind → List Kind → Set) (decEqCon  : ∀ {k} {ks} (x y : Con k ks) → Dec (x ≡ y)) where
+open import CoContextualPi.Syntax using (Syntax)
 
-open import CoContextualPi.StrictUnification Kind decEqKind Con decEqCon
+module CoContextualPi.StrictUnification.Properties (S : Syntax) where
+open Syntax S
+open import CoContextualPi.StrictUnification S
 
 private
   variable
