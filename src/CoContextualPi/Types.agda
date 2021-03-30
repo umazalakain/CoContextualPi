@@ -61,11 +61,11 @@ Syntax.Con SYNTAX = Cons
 Syntax.decEqKind SYNTAX = decEqKind
 Syntax.decEqCon SYNTAX = decEqCons
 
-import CoContextualPi.StrictUnification
-module Unification = CoContextualPi.StrictUnification SYNTAX
+import CoContextualPi.Unification
+module Unification = CoContextualPi.Unification SYNTAX
 open Unification public
-import CoContextualPi.StrictUnification.Properties
-module Unificationₚ = CoContextualPi.StrictUnification.Properties SYNTAX
+import CoContextualPi.Unification.Properties
+module Unificationₚ = CoContextualPi.Unification.Properties SYNTAX
 
 Usage : KindCtx → Set
 Usage γ = γ ⊢= multiplicity

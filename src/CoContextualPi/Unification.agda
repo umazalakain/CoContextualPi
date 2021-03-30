@@ -30,7 +30,7 @@ import Data.List.Properties as Listₚ
 
 open import CoContextualPi.Syntax using (Syntax)
 
-module CoContextualPi.StrictUnification (S : Syntax) where
+module CoContextualPi.Unification (S : Syntax) where
 open Syntax S
 
 private

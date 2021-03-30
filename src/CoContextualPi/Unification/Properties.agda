@@ -22,9 +22,9 @@ import Data.Sum.Properties as Sumₚ
 
 open import CoContextualPi.Syntax using (Syntax)
 
-module CoContextualPi.StrictUnification.Properties (S : Syntax) where
+module CoContextualPi.Unification.Properties (S : Syntax) where
 open Syntax S
-open import CoContextualPi.StrictUnification S
+open import CoContextualPi.Unification S
 
 private
   variable
