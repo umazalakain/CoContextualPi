@@ -103,9 +103,6 @@ data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set wh
   sum    : lz ≔ lx + ly → rz ≔ rx + ry
          → (lz ‵+ rz) ≔ (lx ‵+ rx) + (ly ‵+ ry)
 
-_~_ : γ ⊢= k → γ ⊢= k → Set
-_~_ {k = k} s t = (var (! zero) ≔ |> !suc <| s + (|> !suc <| t))
-
 +-un : γ ⊢= k → Set
 +-un t = t ≔ t + t
 
