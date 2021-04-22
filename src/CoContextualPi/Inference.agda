@@ -1,5 +1,5 @@
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; trans; cong; sym; subst; subst₂; cong-app; cong₂)
-open import Relation.Nullary using (yes; no)
+open import Relation.Nullary using (¬_; yes; no)
 open import Relation.Nullary.Negation using (contradiction)
 open import Function using (id)
 open import Function.Reasoning using () renaming (_|>_ to _|>>_)
@@ -14,6 +14,7 @@ open import Data.Product as Product using (Σ; _×_; ∃-syntax; Σ-syntax; _,_;
 open import Data.Nat as ℕ using (ℕ; zero; suc)
 open import Data.Fin as Fin using (Fin; zero; suc)
 open import Data.Vec as Vec using (Vec; []; _∷_; [_])
+open import Data.Sum as Sum using (_⊎_; inj₁; inj₂)
 open import Data.List as List using (List; []; _∷_; [_])
 open import Data.List.Relation.Unary.All as All using (All; []; _∷_)
 
@@ -87,12 +88,24 @@ _<|ᶜ_ f = List.map (f <|ᶜ¹_)
 FreeSubst : KindCtx → KindCtx → Set
 FreeSubst γ δ = ∀ {k} → γ ∋= k → δ ⊢= k
 
+-- Indexed soundness and completeness
+-- W is the witness or solution
+-- P is the premise
+-- C is the conclusion
+module _ {i w p c} {I : Set i} {W : Set w} (P : I → W → Set p) (C : I → Set c) where
+  Sound : W → Set _
+  Sound w = (i : I) → P i w → C i
+
+  -- For every other solution either the conclusion does not hold, or it implies our solution
+  Complete : W → Set _
+  Complete w = (w' : W) (i : I) → (P i w' → ¬ C i) ⊎ (P i w' → P i w)
+
 ConstrSubst¹ : ∀ {p} → (FreeSubst γ δ → Set p) → Set p
-ConstrSubst¹ P = Σ[ c ∈ Constr _ ] ((σ : FreeSubst _ _) → ⟦ σ <|ᶜ¹ c ⟧ᶜ¹ → P σ)
+ConstrSubst¹ P = Σ[ c ∈ Constr _ ] Sound {I = FreeSubst _ _} (λ σ c → ⟦ σ <|ᶜ¹ c ⟧ᶜ¹) P c
 syntax ConstrSubst¹ {γ} {δ} (λ σ → P) = ∀⟦ σ ∶ γ ↦ δ ⟧¹ P
 
 ConstrSubst : ∀ {p} → (FreeSubst γ δ → Set p) → Set p
-ConstrSubst P = Σ[ c ∈ List (Constr _) ] ((σ : FreeSubst _ _) → ⟦ σ <|ᶜ c ⟧ → P σ)
+ConstrSubst P = Σ[ c ∈ List (Constr _) ] Sound {I = FreeSubst _ _} (λ σ c → ⟦ σ <|ᶜ c ⟧) P c
 syntax ConstrSubst {γ} {δ} (λ σ → P) = ∀⟦ σ ∶ γ ↦ δ ⟧ P
 
 ⊢-∶-assoc : (σ₁ : FreeSubst δ θ) (σ₂ : FreeSubst γ δ) {e : Expr n} (t : Type γ)
