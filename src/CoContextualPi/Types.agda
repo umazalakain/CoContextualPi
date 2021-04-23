@@ -86,9 +86,19 @@ private
   variable
     γ δ : KindCtx
     x y iz ix iy oz ox oy : Usage γ
-    a b c t lz lx ly rz rx ry : Type γ
+    a b c t tx ty tz lz lx ly rz rx ry : Type γ
 
 
+
+data _≔_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → Set where
+  usage  : {x : Usage γ} → x ≔ x
+  top    : ‵⊤ ≔ ‵⊤
+  chan   : ix ≔ iy → ox ≔ oy → tx ≔ ty
+         → # ix ox tx ≔ # iy oy ty
+  prod   : lx ≔ ly → rx ≔ ry
+         → (lx ‵× rx) ≔ (ly ‵× ry)
+  sum    : lx ≔ ly → rx ≔ ry
+         → (lx ‵+ rx) ≔ (ly ‵+ ry)
 
 data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set where
   -- NOTE: x ≔ y + z is not necessarily unique
@@ -96,8 +106,8 @@ data _≔_+_ {γ} : ∀ {k} → γ ⊢= k → γ ⊢= k → γ ⊢= k → Set wh
   right  : x  ≔ 0∙ + x
   shared : ω∙ ≔ x  + y
   top    : ‵⊤ ≔ ‵⊤ + ‵⊤
-  chan   : iz ≔ ix + iy → oz ≔ ox + oy
-         → # iz oz t ≔ # ix ox t + # iy oy t
+  chan   : iz ≔ ix + iy → oz ≔ ox + oy → tz ≔ tx → tx ≔ ty
+         → # iz oz tz ≔ # ix ox tx + # iy oy ty
   prod   : lz ≔ lx + ly → rz ≔ rx + ry
          → (lz ‵× rz) ≔ (lx ‵× rx) + (ly ‵× ry)
   sum    : lz ≔ lx + ly → rz ≔ rx + ry
@@ -116,9 +126,9 @@ private
   variable
     A B C : Ctx n γ
 
-data _≔_⊎_ {γ} : Ctx n γ → Ctx n γ → Ctx n γ → Set where
-  [] : [] ≔ [] ⊎ []
-  _∷_ : (a ≔ b + c) → A ≔ B ⊎ C → (a ∷ A) ≔ (b ∷ B) ⊎ (c ∷ C)
+data _≐_⊎_ {γ} : Ctx n γ → Ctx n γ → Ctx n γ → Set where
+  [] : [] ≐ [] ⊎ []
+  _∷_ : (a ≔ b + c) → A ≐ B ⊎ C → (a ∷ A) ≐ (b ∷ B) ⊎ (c ∷ C)
 
 ⊎-un : Ctx n γ → Set
-⊎-un Γ = Γ ≔ Γ ⊎ Γ
+⊎-un Γ = Γ ≐ Γ ⊎ Γ

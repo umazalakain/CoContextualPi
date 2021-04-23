@@ -68,7 +68,7 @@ data _⊢_∶_ : Ctx n γ → Expr n → Type γ → Set where
   inr : Γ ⊢ e ∶ s
       → Γ ⊢ inr e ∶ (t ‵+ s)
 
-  pair : Γ ≔ Δ ⊎ Ξ
+  pair : Γ ≐ Δ ⊎ Ξ
        → Δ ⊢ e ∶ s
        → Ξ ⊢ f ∶ t
        → Γ ⊢ (e ‵, f) ∶ (s ‵× t)
@@ -82,24 +82,24 @@ data _⊢_ : Ctx n γ → Proc n → Set where
       → (t ∷ Γ) ⊢ P
       → Γ ⊢ new P
 
-  comp : Γ ≔ Δ ⊎ Ξ
+  comp : Γ ≐ Δ ⊎ Ξ
        → Δ ⊢ P
        → Ξ ⊢ Q
        → Γ ⊢ comp P Q
 
-  recv : Γ ≔ Δ ⊎ Ξ
+  recv : Γ ≐ Δ ⊎ Ξ
        → Δ ⊢ e ∶ # 1∙ 0∙ t
        → (t ∷ Ξ) ⊢ P
        → Γ ⊢ recv e P
 
-  send : Γ ≔ Δ ⊎ Ξ
-       → Ξ ≔ Ω ⊎ Ψ
+  send : Γ ≐ Δ ⊎ Ξ
+       → Ξ ≐ Ω ⊎ Ψ
        → Δ ⊢ e ∶ # 0∙ 1∙ t
        → Ω ⊢ f ∶ t
        → Ψ ⊢ P
        → Γ ⊢ send e f P
 
-  case : Γ ≔ Δ ⊎ Ξ
+  case : Γ ≐ Δ ⊎ Ξ
        → Δ ⊢ e ∶ (t ‵+ s)
        → (t ∷ Ξ) ⊢ P
        → (s ∷ Ξ) ⊢ Q
