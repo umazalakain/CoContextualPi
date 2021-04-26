@@ -2,36 +2,147 @@
 # Introduction
 
 Type inference for the pi calculus with linear and shared channel types.
-Composite sum and product types.
+
 **TODO: recursion/replication**
 **TODO: bounded linear types?**
 **TODO: type assertions**
 
+Consider a $\pi$-calculus with usage annotations on channels.
+These usage annotations are one of $0$, $1$, or $\omega$.
+$0$ must not be used, $1$ must be used exactly once, $\omega$ can be used as many times as desired.
+Sum and products contain usage annotations on their leafs.
+
+## Types
+
+Let $\gamma$ be a context of metavariable kinds, where a kind is either a `type` or a `usage`.
+Then $\gamma \ni k$ is a choice of a $k$ inside $\gamma$.
+$$
+\begin{aligned}
+S, T : \texttt{Type}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{type}) ~|~ \#_{i,o}t ~|~ \top ~|~ S + T ~|~ S \times T \\
+i,o : \texttt{Usage}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{usage}) ~|~ 0\cdot ~|~ 1\cdot ~|~ \omega\cdot
+\end{aligned}
+$$
+
+## Type System
+
+
+The type system is the usual standard type system based on context splits that one defines for the pi calculus.
+TODO: insert type system definition here:.
+
+Usage annotations are $0\cdot$, $1\cdot$, $\omega\cdot$.
+Context splits are defined as follows:
+
+$$
+\begin{aligned}
+\forall x.    && x           &= x + 0\cdot \\
+\forall x.    && x           &= 0\cdot + x \\
+\forall x ~y. && \omega\cdot &= y + z
+\end{aligned}
+$$
+
+Only the usage annotations at the upper level of a channel type are split: the usage annotations of any channel type that is send as data are preserved on all three sides of the split.
+
+# Inference
+
 Co-contextual type inference: traverses the syntax bottom up, collecting constraints on the typing context.
-Shared types can be eagerly unified and the resulting substitutions applied.
-Adding usage annotations to types complicates things: we need to keep track of the fact that `x = y + z`, even if `x`, `y` and `z` are unknowns.
-This is true for both usage annotations and types containing usage annotations.
-We cannot, thus, solve eagerly.
-The solution is to keep these constraints around and defer the solution.
-It might even be that some constraints have more than one possible solution.
-We cannot confine ourselves to an eager choice.
+
+Constraints can be of the following form:
+
+- $S = T$: types $S$ and $T$ must be unifiable.
+- $S = T + R$: adding up the usage annotations in $T$ and $R$ must result in $S$.
+
+Constraints of the form $S = T$ can always be eagerly unified.
+However constraints of the form $S = T + R$ might contain variables: $\texttt{mvar}~x = \texttt{mvar}~y + \texttt{mvar}~z$.
+In an open process, these variables cannot safely be instantiated to $0$.
+As such, no substitution is possible, yet we need to remember the constraint.
+(It might also be that some constraints have more than one possible solution.)
 At the same time, we need to show that the constraints that we postulate are enough to solve the problem.
-This gives raise to the following soundness theorem:
 
-```
-forall (p : Proc). exists (gamma : Ctx). exists (constraints : List Constraint). forall (omega : Substitution). [[ omega <| constraints ]] -> (omega <| gamma) |- P
-```
+\paragraph{Constraint Satisfaction}
+The $[\![\_]\!]$ function interprets constraints into their type counterparts $S \equiv T$ and $S = T + R$.
+Substituting into a constraint substitutes pointwise. 
 
-Some constraints can however be simplified.
-In this case, we need to show that the simplified version is enough to entail the original constraints:
+\paragraph{Inference}
+$$
+\texttt{infer} : \forall (p : \texttt{Proc}~n). ~ \exists \gamma. ~ \texttt{Ctx}~n~\gamma \times \texttt{List}~(\texttt{Constr}~\gamma)
+$$
 
-```
-forall (c : List Constraint). exists (subc : List Constraint). forall (omega : Substitution). [[ omega <| subc ]] -> [[ omega <| c ]]
-```
+\paragraph{Inference soundness.} Every substitution $\sigma$ that makes the constraints hold will make the process typable under the substituted context.
+$$
+\begin{aligned}
+\texttt{infer-sound} &: \forall (p : \texttt{Proc}~n). ~ \texttt{infer}~P \equiv \gamma , \Gamma , cs \\
+&\to \forall (\sigma : \texttt{Subst}~\gamma~\delta). ~ [\![ \sigma \triangleleft cs ]\!] \\
+&\to (\sigma \triangleleft \Gamma) \vdash P
+\end{aligned}
+$$
 
-These normalization could in fact be performed eagerly, but we find it is best to separate stages.
-The resulting set of normalized constraints has had equality constraints substituted out.
-The only constraints left are splits between two type metavariables, splits between two usage metavariables, and splits between a usage constant and a usage metavariable.
+\paragraph{Inference completeness.} For every context $\Delta$ that makes the process typable there exists a most general substitution $\sigma$ that will solve the constraints and which substitutes in $\Gamma$ to something more general than $\Delta$.
+$$
+\begin{aligned}
+\texttt{infer-complete} &: \forall (p : \texttt{Proc}~n). ~ \texttt{infer}~P \equiv \gamma , \Gamma , cs \\
+&\to \forall (\Delta : \texttt{Ctx}~n~\gamma). ~ \Delta \vdash P \\
+&\to \exists \delta. ~ \exists (\sigma : \texttt{Subst}~\gamma~\delta). \\
+&\to [\![ \sigma \triangleleft cs ]\!] \times \Delta \subseteq (\sigma \triangleleft \Gamma)
+\end{aligned}
+$$
+where
+$$
+\Delta \subseteq \Gamma \triangleq \exists \delta. ~ \exists (\sigma : \texttt{Subst} \_ \delta). ~ \Delta \equiv (\sigma \triangleleft \Gamma)
+$$
+
+# Constraint Resolution
+
+\paragraph{Constraint Resolution.} Given a set of accumulated substitutions and some constraints, we will return (hopefully) some further substitutions, and a set of leftover constraints to which the substitutions have been applied.
+These leftover constraints can either not be simplified or are unsatisfiable.
+$$
+\begin{aligned}
+\texttt{solve} &: \texttt{Subst}~\gamma~\delta \times \texttt{List}~(\texttt{Constr}~\delta) \\
+&\to \texttt{Subst}~\gamma~\phi \times \texttt{List}~(\texttt{Constr}~\phi)
+\end{aligned}
+$$
+
+\paragraph{Soundness.} The simplified constraints are enough to entail the original constraints.
+$$
+\begin{aligned}
+\texttt{solve-sound}
+&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
+&\to \forall (\sigma_f : \texttt{Subst}~\gamma~\delta) \\
+& \to [\![ \sigma_f \triangleleft cs_2 ]\!] \to [\![ \sigma_f \cdot \sigma_2 \triangleleft cs_1 ]\!]
+\end{aligned}
+$$
+
+
+\paragraph{Completeness.} Any substitution $\sigma_f$ that makes the original constraints $cs_1$ hold will be a specialisation $\sigma_f$ of our returned substitution $\sigma_2$.
+The specialisation $\sigma_g$ will make the returned constraints $cs_2$ hold.
+$$
+\begin{aligned}
+\texttt{solve-sound}
+&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
+&\to \forall (\sigma_f : \texttt{Subst}~\gamma~\delta). ~ [\![ \sigma_f \triangleleft cs_1 ]\!] \\
+&\to \exists (\sigma_g : \sigma_f = \sigma_g \cdot \sigma_2) \times [\![ \sigma_g \triangleleft cs_2 ]\!]
+\end{aligned}
+$$
+
+
+\paragraph{Progress.} Nothing prevents us from returning the original constraints as output.
+We therefore promise that every constraint we return is either currently unsolvable because we have not enough information, or is unsatisfiable altogether.
+$$
+\begin{aligned}
+\texttt{solve-sound}
+&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
+&\to \forall c \in cs_2. ~ \texttt{IsDeferred}~c \uplus \texttt{IsUnsat}~c
+\end{aligned}
+$$
+where
+$$
+\texttt{IsUnsat}~c = \forall \sigma. ~ \neg [\![ \sigma \triangleleft c ]\!]
+$$
+
+\paragraph{Instantiation.} 
+$$
+\forall c. ~ \texttt{IsDeferred}~c \to \exists \sigma. [\![ \sigma \triangleleft c ]\!]
+$$
+
 
 ### Example Problem
 
@@ -142,23 +253,3 @@ send a <- (); send x <- a; end | a : #?ai''(1 + ?ao'') Unit | x : #01 (#?ai''(1 
 ```
 
 Which is open term polymorphic on the multiplicities `?ai''` and `?ao''` of `a` that are sent over `x`.
-
-## Type System
-
-The type system is the usual standard type system based on context splits that one defines for the pi calculus.
-Usage annotations are `0`, `1`, `omega`.
-Context splits are defined as follows:
-
-```
-x     = x + 0
-x     = 0 + x
-omega = y + z
-```
-
-Only the usage annotations at the upper level of a channel type are split: the usage annotations of any channel type that is send as data are preserved on all three sides of the split.
-
-## Constraint Satisfaction
-
-Constraints are defined as either equality constraints `S == T`, or usage splits `S == T + R`.
-The `[[_]]` function interprets them into their type counterparts `S \equiv T` and `S := T + R`.
-Substituting into a constraint substitutes pointwise. 
