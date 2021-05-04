@@ -1,10 +1,44 @@
-\documentclass[sigplan,review,screen]{acmart}
+\documentclass[sigplan,screen,review]{acmart}
 
+\usepackage{todonotes}
+
+\newcommand{\picalc}{$\pi$-calculus}
+\newcommand{\Picalc}{$\pi$-Calculus}
+
+
+\title{Extended Abstract}
+\subtitle{Co-Contextual Type Inference for the Linear \Picalc{} in Agda}
+
+\author{Uma Zalakain}
+\affiliation{University of Glasgow}
+\email{u.zalakain.1@research.gla.ac.uk}
+
+\author{Ornela Dardha}
+\affiliation{University of Glasgow}
+\email{ornela.dardha@glasgow.ac.uk}
 
 \begin{document}
 
-\hypertarget{introduction}{%
-\section{Introduction}\label{introduction}}
+\begin{abstract}
+  The linear \picalc{} is an important substructural type system for the \picalc{}:
+  it is a common target for the encoding of session-typed languages \todo{cite},
+  and it in direct correspondence with classical linear logic \todo{cite}.
+
+  Type inference for the linear \picalc{} comes with its own challenges:
+  for one, processes themselves are untyped, and thus typing constraints only apply to the typing contexts;
+  moreover, typing constraints on usage annotations cannot always be eagerly solved in open processes.
+
+  We approach the first challenge using co-contextual type inference, where processes are traversed bottom-up and constraints are collected (and when possible eagerly solved) and merged on context splits.
+  We approach the latter challenge by allowing the resolution of some of the constraints to be deferred, and adapting the soundness and completeness theorems to take this into account.
+  We mechanise all our work in Agda.
+\end{abstract}
+
+
+\maketitle
+
+\section{Introduction}\label{introduction}
+
+\cite{ErdwegBKKM15}
 
 Type inference for the pi calculus with linear and shared channel types.
 
@@ -28,6 +62,7 @@ S, T : \texttt{Type}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{type}) ~|~ \#_{
 i,o : \texttt{Usage}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{usage}) ~|~ 0\cdot ~|~ 1\cdot ~|~ \omega\cdot
 \end{aligned}
 \]
+
 
 \hypertarget{type-system}{%
 \subsection{Type System}\label{type-system}}
@@ -177,4 +212,6 @@ altogether. \[
 \forall c. ~ \texttt{IsDeferred}~c \to \exists \sigma. [\![ \sigma \triangleleft c ]\!]
 \]
 
+\bibliographystyle{abbrvnat}
+\bibliography{paper}
 \end{document}
