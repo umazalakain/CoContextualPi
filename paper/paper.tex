@@ -20,17 +20,20 @@
 \begin{document}
 
 \begin{abstract}
-  The linear \picalc{} is an important substructural type system for the \picalc{}:
+  The linear \picalc{} is a well-known substructural type system for the \picalc{}:
   it is a common target for the encoding of session-typed languages \todo{cite},
   and it in direct correspondence with classical linear logic \todo{cite}.
 
   Type inference for the linear \picalc{} comes with its own challenges:
   for one, processes themselves are untyped, and thus typing constraints only apply to the typing contexts;
-  moreover, typing constraints on usage annotations cannot always be eagerly solved in open processes.
+  moreover, typing constraints on usage annotations \emph{cannot always be eagerly solved in open processes}.
 
-  We approach the first challenge using co-contextual type inference, where processes are traversed bottom-up and constraints are collected (and when possible eagerly solved) and merged on context splits.
-  We approach the latter challenge by allowing the resolution of some of the constraints to be deferred, and adapting the soundness and completeness theorems to take this into account.
-  We mechanise all our work in Agda.
+  We approach the first challenge using \emph{co-contextual type inference} \cite{ErdwegBKKM15}, where processes are traversed bottom-up and constraints are collected (and when possible eagerly solved) and merged on context splits.
+  We approach the latter challenge by allowing the resolution of some of the constraints to be deferred.
+  We state soundness and completeness theorems that take this deferral of constraint resolution into account.
+  We state a progress (?) theorem that shows that only those constraints that need to be deferred are deferred.
+  \todo{be more precise}
+  We are working on mechanising our work in Agda.
 \end{abstract}
 
 
@@ -38,9 +41,20 @@
 
 \section{Introduction}\label{introduction}
 
-\cite{ErdwegBKKM15}
+We define an untyped but well scoped \picalc{} using type-level de Bruijn \todo{cite} indices \autoref{syntax}.
+We define a small expression language within the process syntax to handle composite sum and product types.
+On top of the well-scoped syntax we provide the standard linear type-system using context-splits \autoref{type-system}.
+The type system is indexed by a typing context that admits unsolved metavariables.
+These unsolved metavariables are however well kinded: either types or usage annotations.
 
-Type inference for the pi calculus with linear and shared channel types.
+\todo{insert example showing why we need deferral}
+
+We split typing inference into constraint collection and constraint solving \autoref{inference}.
+We start by defining constraints on types and usage annotations \autoref{constraints}
+We collect constraints bottom-up, creating extra \emph{merging} constraints on context splits.
+This allows type-inference to be easily parallelisable.
+We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
+
 
 \textbf{TODO: recursion/replication} \textbf{TODO: bounded linear
 types?} \textbf{TODO: type assertions}
@@ -51,8 +65,10 @@ be used, \(1\) must be used exactly once, \(\omega\) can be used as many
 times as desired. Sum and products contain usage annotations on their
 leafs.
 
-\hypertarget{types}{%
-\subsection{Types}\label{types}}
+\section{Type System}\label{type-system}
+
+
+\subsection{Types}\label{types}
 
 Let \(\gamma\) be a context of metavariable kinds, where a kind is
 either a \texttt{type} or a \texttt{usage}. Then \(\gamma \ni k\) is a
@@ -62,10 +78,6 @@ S, T : \texttt{Type}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{type}) ~|~ \#_{
 i,o : \texttt{Usage}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{usage}) ~|~ 0\cdot ~|~ 1\cdot ~|~ \omega\cdot
 \end{aligned}
 \]
-
-
-\hypertarget{type-system}{%
-\subsection{Type System}\label{type-system}}
 
 The type system is the usual standard type system based on context
 splits that one defines for the pi calculus. TODO: insert type system
