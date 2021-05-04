@@ -2,9 +2,59 @@
 
 \usepackage{todonotes}
 
+% Typing rules
+\usepackage{mathpartir}
+\mprset {sep=1em} % Horizontal space between premises
+
 \newcommand{\picalc}{$\pi$-calculus}
 \newcommand{\Picalc}{$\pi$-Calculus}
+\newcommand{\rulename}[1]{{\tiny \textsc{(#1)}}}
+\newcommand{\constr}[1]{\textcolor{olive}{\mathtt{#1}}}
+\newcommand{\type}[1]{\textcolor{blue}{\mathtt{#1}}}
 
+% Syntax types
+\newcommand{\Fin}[1]{\type{Fin}~#1}
+\newcommand{\sExpr}[1]{\type{Expr}~#1}
+\newcommand{\sProc}[1]{\type{Proc}~#1}
+\newcommand{\tvar}[2]{#1 ~\type{\ni_t}~ #2}
+\newcommand{\tkind}[2]{#1 ~\type{\vdash_t}~ #2}
+\newcommand{\ttype}[1]{\type{Type}~#1}
+\newcommand{\tusage}[1]{\type{Usage}~#1}
+\newcommand{\tCtx}[2]{\type{Ctx}_{#1}~#2}
+\newcommand{\tSplit}[3]{#1~\type{=}~#2~\type{\uplus}~#3}
+\newcommand{\tun}[1]{\type{un}~#1}
+\newcommand{\tVar}[3]{#1 ~ \type{\ni} ~ #2 ~ \type{:} ~ #3}
+\newcommand{\tExpr}[3]{#1 ~ \type{\vdash} ~ #2 ~ \type{:} ~ #3}
+\newcommand{\tProc}[2]{#1 ~ \type{\vdash} ~ #2}
+
+% Syntax constructors
+\newcommand{\sunit}{\constr{unit}}
+\newcommand{\svar}{\constr{var}}
+\newcommand{\sfst}{\constr{fst}}
+\newcommand{\ssnd}{\constr{snd}}
+\newcommand{\sinl}{\constr{inl}}
+\newcommand{\sinr}{\constr{inr}}
+\newcommand{\spair}{\constr{pair}}
+\newcommand{\send}{\constr{end}}
+\newcommand{\snew}{\constr{new}}
+\newcommand{\scomp}{\constr{comp}}
+\newcommand{\srecv}{\constr{recv}}
+\newcommand{\ssend}{\constr{send}}
+\newcommand{\scase}{\constr{case}}
+
+% Kind constructors
+\newcommand{\ktype}{\constr{ty}}
+\newcommand{\kusage}{\constr{us}}
+
+% Type constructors
+\newcommand{\tmvar}{\constr{mvar}}
+\newcommand{\tchan}{\constr{chan}}
+\newcommand{\tunit}{\constr{unit}}
+\newcommand{\tsum}{\constr{sum}}
+\newcommand{\tprod}{\constr{prod}}
+\newcommand{\tzero}{\constr{0\cdot}}
+\newcommand{\tone}{\constr{1\cdot}}
+\newcommand{\tomega}{\constr{\omega\cdot}}
 
 \title{Extended Abstract}
 \subtitle{Co-Contextual Type Inference for the Linear \Picalc{} in Agda}
@@ -56,50 +106,105 @@ This allows type-inference to be easily parallelisable.
 We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
 
 
-\textbf{TODO: recursion/replication} \textbf{TODO: bounded linear
-types?} \textbf{TODO: type assertions}
+\section{Syntax}\label{syntax}
 
-Consider a \(\pi\)-calculus with usage annotations on channels. These
-usage annotations are one of \(0\), \(1\), or \(\omega\). \(0\) must not
-be used, \(1\) must be used exactly once, \(\omega\) can be used as many
-times as desired. Sum and products contain usage annotations on their
-leafs.
+Expressions $e_n$ and $f_n$ are of type $\sExpr{n}$, processes $p_n$ and $q_n$ are of type $\sProc{n}$, variable references $i_n$ are of type $\Fin{n}$.
+\[
+\begin{aligned}[c]
+  e_n ~ f_n  :=
+  &~ \sunit \\
+  |&~ \svar~i_n \\
+  |&~ \spair~e_n~f_n \\
+  |&~ \sfst~e_n ~|~  \ssnd~e_n \\
+  |&~ \sinl~e_n ~|~  \sinr~e_n
+\end{aligned}
+\begin{aligned}[c]
+  p_n ~ q_n  :=
+  &~ \send ~|~  \snew~p_{1+n} \\
+  |&~ \srecv~e_n~p_{1+n} \\
+  |&~ \ssend~e_n~f_n~p_n \\
+  |&~ \scomp~p_n~q_n \\
+  |&~ \scase~e_n~p_{1+n}~q_{1+n}
+\end{aligned}
+\]
+\todo{add recursion}
+\todo{add type assertions}
 
 \section{Type System}\label{type-system}
 
+Both types and usage annotations allow for \emph{holes} or \emph{metavariables}.
+We use the same set of metavariables for both types and usage annotations -- this makes their handling more uniform.
+We use a context of kinds \(\gamma\) to keep track of whether a metavariable is of type kind $\ktype$ or usage annotation kind $\kusage$: a choice of kind \(k\) in a kinding context \(\gamma\) is denoted as $\tvar{\gamma}{k}$.
 
-\subsection{Types}\label{types}
+We define well kinded types and usage annotations simultaneously so that we are able to provide a uniform unification and context merge algorithm later on (note that we define $\tsum$ and $\tprod$ and $\tzero$, $\tone$ and $\tomega$ in one go to save space):
+\begin{mathpar}
+  \inferrule {m : \tvar{\gamma}{k}} {\tmvar~m : \tkind{\gamma}{k}}
 
-Let \(\gamma\) be a context of metavariable kinds, where a kind is
-either a \texttt{type} or a \texttt{usage}. Then \(\gamma \ni k\) is a
-choice of a \(k\) inside \(\gamma\). \[
-\begin{aligned}
-S, T : \texttt{Type}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{type}) ~|~ \#_{i,o}t ~|~ \top ~|~ S + T ~|~ S \times T \\
-i,o : \texttt{Usage}~\gamma &= \texttt{mvar}~(\gamma \ni \texttt{usage}) ~|~ 0\cdot ~|~ 1\cdot ~|~ \omega\cdot
-\end{aligned}
-\]
+  \inferrule {
+    i : \tkind{\gamma}{\kusage} \\
+    o : \tkind{\gamma}{\kusage} \\
+    t : \tkind{\gamma}{\ktype}}
+  {\tchan~i~o~t : \tkind{\gamma}{\ktype}}
 
-The type system is the usual standard type system based on context
-splits that one defines for the pi calculus. TODO: insert type system
-definition here:.
+  \inferrule { }
+  {\tunit : \tkind{\gamma}{\ktype}}
 
-Usage annotations are \(0\cdot\), \(1\cdot\), \(\omega\cdot\). Context
-splits are defined as follows:
+  \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
+  {\tsum~s~t ~|~ \tprod~s~t : \tkind{\gamma}{\ktype}}
 
-\[
-\begin{aligned}
-\forall x.    && x           &= x + 0\cdot \\
-\forall x.    && x           &= 0\cdot + x \\
-\forall x ~y. && \omega\cdot &= y + z
-\end{aligned}
-\]
+  \inferrule { } {\tzero ~|~ \tone ~|~ \tomega : \tkind{\gamma}{\kusage}}
+\end{mathpar}
+We will henceforth use $\ttype{\gamma}$ to stand for $\tkind{\gamma}{\ktype}$ and $\tusage{\gamma}$ to stand for $\tkind{\gamma}{\kusage}$.
 
-Only the usage annotations at the upper level of a channel type are
-split: the usage annotations of any channel type that is send as data
-are preserved on all three sides of the split.
+A context $\Gamma$ of type $\tCtx{n}{\gamma}$ is a list of $\ttype{\gamma}$ of size $n$.
+We define context splits $\tSplit{\Gamma}{\Delta}{\Theta}$ pointwise on types.
+Splits on types are defined pointwise recursively on usage annotations -- note however that only the usage annotations on the top level of a channel (that is, not within its payload) are split.
+Splits on usage annotations are defined as follows -- note that they are not necessarily unique:
+\begin{mathpar}
+  \inferrule { } {\tSplit{x}{x}{\tzero}}
 
-\hypertarget{inference}{%
-\section{Inference}\label{inference}}
+  \inferrule { } {\tSplit{x}{\tzero}{x}}
+
+  \inferrule { } {\tSplit{\tomega}{x}{y}}
+\end{mathpar}
+
+A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \todo{cite padovani}.
+\todo{typing judgment for variables}
+
+We can finally define our typing judgment for expressions and processes. \todo{formation rules double lined}
+
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
+             { \tExpr{\Gamma}{e}{t} }
+
+  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} } \rulename{var}
+
+  \inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} } \rulename{unit}
+
+  \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} { \tExpr{\Gamma}{\sfst~e}{t}} \rulename{fst}
+
+  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}} \rulename{inl}
+
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
+             { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
+             \rulename{pair}
+
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
+             { \tProc{\Gamma}{p} }
+
+  \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} } \rulename{end}
+
+  \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
+
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
+             { \tProc{\Gamma}{\srecv~e~p} }
+
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tsum~s~t} \\ \tProc{\Theta,s}{p} \\ \tProc{\Theta,t}{q} }
+             { \tProc{\Gamma}{\scase~e~p~q} }
+\end{mathpar}
+
+     
+\section{Inference}\label{inference}
 
 Co-contextual type inference: traverses the syntax bottom up, collecting
 constraints on the typing context.
