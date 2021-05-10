@@ -10,6 +10,7 @@
 \newcommand{\Picalc}{$\pi$-Calculus}
 \newcommand{\rulename}[1]{{\tiny \textsc{(#1)}}}
 \newcommand{\constr}[1]{\textcolor{olive}{\mathtt{#1}}}
+\newcommand{\func}[1]{\textcolor{gray}{\mathtt{#1}}}
 \newcommand{\type}[1]{\textcolor{blue}{\mathtt{#1}}}
 
 % Syntax types
@@ -24,6 +25,7 @@
 \newcommand{\tusage}[1]{\type{Usage}~#1}
 \newcommand{\tCtx}[2]{\type{Ctx}_{#1}~#2}
 \newcommand{\tSplit}[3]{#1~\type{=}~#2~\type{\uplus}~#3}
+\newcommand{\tEq}[2]{#1~\type{\equiv}~#2}
 \newcommand{\tun}[1]{\type{un}~#1}
 \newcommand{\tVar}[3]{#1 ~ \type{\ni} ~ #2 ~ \type{:} ~ #3}
 \newcommand{\tExpr}[3]{#1 ~ \type{\vdash} ~ #2 ~ \type{:} ~ #3}
@@ -110,6 +112,8 @@ We start by defining constraints on types and usage annotations \autoref{constra
 We collect constraints bottom-up, creating extra \emph{merging} constraints on context splits.
 This allows type-inference to be easily parallelisable.
 We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
+
+(Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and this is not a poem.)
 
 
 \section{Syntax}\label{syntax}
@@ -243,11 +247,13 @@ Constraints take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are 
 Both these constraints are defined on usage annotations, types, and typing contexts.
 Constraints of the former form can \emph{always} be eagerly solved, while constraints of the latter \emph{sometimes} cannot, and must be deferred.
 
+\paragraph{Substitution}
+
 \paragraph{Constraint Satisfaction}
 
-The \([\![\_]\!]\) function interprets constraints into their type
-counterparts \(S \equiv T\) and \(S = T + R\). Substituting into a
-constraint substitutes pointwise.
+We use the $\func{[\![\_]\!]}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
+
+\todo{substitution into constraints}
 
 \paragraph{Inference}
 
