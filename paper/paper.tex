@@ -30,6 +30,8 @@
 \newcommand{\tVar}[3]{#1 ~ \type{\ni} ~ #2 ~ \type{:} ~ #3}
 \newcommand{\tExpr}[3]{#1 ~ \type{\vdash} ~ #2 ~ \type{:} ~ #3}
 \newcommand{\tProc}[2]{#1 ~ \type{\vdash} ~ #2}
+\newcommand{\tConstr}[1]{\type{Constr} ~ #1}
+\newcommand{\tConstrs}[1]{\type{[Constr} ~ #1 ~ \type{]}}
 
 % Syntax constructors
 \newcommand{\sunit}{\constr{unit}}
@@ -59,6 +61,8 @@
 \newcommand{\tzero}{\constr{0\cdot}}
 \newcommand{\tone}{\constr{1\cdot}}
 \newcommand{\tomega}{\constr{\omega\cdot}}
+
+\newcommand{\subst}[2]{#1 ~ \func{\triangleleft} ~ #2}
 
 % Constraint constructors
 \newcommand{\eqconstr}[2]{#1 ~ \constr{\stackrel{c}{=}} ~ #2}
@@ -113,7 +117,7 @@ We collect constraints bottom-up, creating extra \emph{merging} constraints on c
 This allows type-inference to be easily parallelisable.
 We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
 
-(Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and this is not a poem.)
+(Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and I am sorry this is not a wee poem.)
 
 
 \section{Syntax}\label{syntax}
@@ -243,23 +247,34 @@ We must defer the resolution of these constraints until more information becomes
 
 We present two kinds of constraints, showcase how to encode inference problems for some of the typing rules in \autoref{type-system}, and state the lemmas that will allow us to show that our approach to inference is both sound and complete.
 
-Constraints take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are meant to be unified, and the ternary $\sumconstr{S}{T}{R}$, where the usage annotations in $T$ and $R$ are meant to be added up to $S$.
-Both these constraints are defined on usage annotations, types, and typing contexts.
+\paragraph{Constraints}
+
+Constraints are of type $\tConstr{\gamma}$ and are defined on arguments of type $\tkind{\gamma}{k}$ for some $k$ --- that is, both usage annotations and types.
+They take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are meant to be unified, and the ternary $\sumconstr{S}{T}{R}$, where $T$ and $R$ are meant to be added up to $S$.
 Constraints of the former form can \emph{always} be eagerly solved, while constraints of the latter \emph{sometimes} cannot, and must be deferred.
+We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\gamma}$.
 
 \paragraph{Substitution}
 
-\paragraph{Constraint Satisfaction}
+We encode substitution as a function $\subst{\_}{\_}$ of type $(\forall k \to \tvar{\gamma}{k} \to \tkind{\delta}{k}) \to (\forall k \to \tkind{\gamma}{k} \to \tkind{\delta}{k})$ that acts on usage annotations and types and typing contexts, and that freely alters the metavariable context.
+We define substitutions on constraints pointwise on their arguments.
 
-We use the $\func{[\![\_]\!]}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
+\paragraph{Constraint satisfaction}
 
-\todo{substitution into constraints}
+We use a $\func{[\![\_]\!]}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
 
 \paragraph{Inference}
 
-\[
-\texttt{infer} : \forall (p : \texttt{Proc}~n). ~ \exists \gamma. ~ \texttt{Ctx}~n~\gamma \times \texttt{List}~(\texttt{Constr}~\gamma)
-\]
+We encode type inference as a function taking processes with $n$ free variables and returning a metavariable context $\gamma$, a typing context with $n$ free variables containing metavariables in $\gamma$, and a list of constraints on those metavariables $\gamma$:
+$$
+\func{infer} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma}
+$$
+
+\todo{insert examples}
+
+We define a similar function for type inference on expressions, this time also returning a type $\tau$ of type $\ttype{\gamma}$ for the expression.
+
+\todo{insert examples}
 
 \paragraph{Inference soundness.}
 
