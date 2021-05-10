@@ -65,8 +65,8 @@
 \newcommand{\subst}[2]{#1 ~ \func{\triangleleft} ~ #2}
 
 % Constraint constructors
-\newcommand{\eqconstr}[2]{#1 ~ \constr{\stackrel{c}{=}} ~ #2}
-\newcommand{\sumconstr}[3]{#1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{+} ~ #3}
+\newcommand{\eqconstr}[2]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{]}}
+\newcommand{\sumconstr}[3]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{+} ~ #3 ~ \constr{]}}
 
 \title{Extended Abstract}
 \subtitle{Co-Contextual Type Inference for the Linear \Picalc{} in Agda}
@@ -267,14 +267,23 @@ We use a $\func{[\![\_]\!]}$ function to interpret constraints $\eqconstr{S}{T}$
 
 We encode type inference as a function taking processes with $n$ free variables and returning a metavariable context $\gamma$, a typing context with $n$ free variables containing metavariables in $\gamma$, and a list of constraints on those metavariables $\gamma$:
 $$
-\func{infer} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma}
+\func{inferProc} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma}
 $$
-
-\todo{insert examples}
-
 We define a similar function for type inference on expressions, this time also returning a type $\tau$ of type $\ttype{\gamma}$ for the expression.
+$$
+\func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \ttype{\gamma} \times \tConstrs{\gamma}
+$$
+Let us provide a couple of examples illustrating how this function is defined:
+\begin{itemize}
+\item
+  For the expression $\sfst~e$ we first recursively infer the metavariable context $\gamma$, the typing context $\Gamma$, the type $\tau$ and the constraints $Cs$ for $e$.
+  We then add two fresh metavariables $?t$ and $?s$ of kind $\ktype$ to $\gamma$, add constraints $\eqconstr{\tau}{\tprod~?t~?s}$ and $\sumconstr{?s}{?s}{?s}$ to $cs$, and return $?t$ as the type of $e$.
 
-\todo{insert examples}
+\item
+  For the expression $\scase~e~p~q$ we first recursively infer $p$ and $q$ and $e$: $\func{inferProc}~p = \gamma_p, (\Gamma_p, s) , Cs_p$, $\func{inferProc}~q = \gamma_q, (\Gamma_q, t) , Cs_q$, and $\func{inferExpr}~e = \gamma_e, \Gamma_e, \tau, Cs_e$.
+  We add the metavariables in $\gamma_p$ to the ones in $\gamma_q$ and a new metavariable $?r$ of kind $\ktype$, and refer to the result as $\delta$.
+  We add the constraints in $Cs_p$  to the ones in $Cs_q$ and create new constraints $\eqconstr{\Gamma_p}{\Gamma_q}$ 
+\end{itemize}
 
 \paragraph{Inference soundness.}
 
