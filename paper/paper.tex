@@ -71,7 +71,7 @@
 
 \begin{abstract}
   The linear \picalc{} is a well-known substructural type system for the \picalc{}:
-  it is a common target for the encoding of session-typed languages \todo{cite},
+  it is a common target for the encoding of session-typed languages \cite{DardhaGS17},
   and it in direct correspondence with classical linear logic \todo{cite}.
 
   Type inference for the linear \picalc{} comes with its own challenges:
@@ -91,7 +91,7 @@
 
 \section{Introduction}\label{introduction}
 
-We define an untyped but well scoped \picalc{} using type-level de Bruijn \todo{cite} indices \autoref{syntax}.
+We define an untyped but well scoped \picalc{} using type-level de Bruijn \cite{deBruijn72} indices \autoref{syntax}.
 We define a small expression language within the process syntax to handle composite sum and product types.
 On top of the well-scoped syntax we provide the standard linear type-system using context-splits \autoref{type-system}.
 The type system is indexed by a typing context that admits unsolved metavariables.
@@ -168,7 +168,7 @@ Splits on usage annotations are defined as follows -- note that they are not nec
   \inferrule { } {\tSplit{\tomega}{x}{y}}
 \end{mathpar}
 
-A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \todo{cite padovani}.
+A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \cite{Padovani15}.
 \todo{typing judgment for variables}
 
 We can finally define our typing judgment for expressions and processes. \todo{formation rules double lined}
@@ -269,6 +269,9 @@ and which substitutes in \(\Gamma\) to something more general than
 
 \hypertarget{constraint-resolution}{%
 \section{Constraint Resolution}\label{constraint-resolution}}
+
+
+\cite{McBride03}
 
 \paragraph{Constraint Resolution.}
 
