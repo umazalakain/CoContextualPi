@@ -48,7 +48,7 @@
 \newcommand{\ktype}{\constr{ty}}
 \newcommand{\kusage}{\constr{us}}
 
-% Type constructors
+% Typing judgment constructors
 \newcommand{\tmvar}{\constr{mvar}}
 \newcommand{\tchan}{\constr{chan}}
 \newcommand{\tunit}{\constr{unit}}
@@ -57,6 +57,10 @@
 \newcommand{\tzero}{\constr{0\cdot}}
 \newcommand{\tone}{\constr{1\cdot}}
 \newcommand{\tomega}{\constr{\omega\cdot}}
+
+% Constraint constructors
+\newcommand{\eqconstr}[2]{#1 ~ \constr{\stackrel{c}{=}} ~ #2}
+\newcommand{\sumconstr}[3]{#1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{+} ~ #3}
 
 \title{Extended Abstract}
 \subtitle{Co-Contextual Type Inference for the Linear \Picalc{} in Agda}
@@ -172,7 +176,7 @@ Splits on usage annotations are defined as follows -- note that they are not nec
 
 A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \cite{Padovani15}.
 
-We can finally define our typing judgment for variables, expressions and processes.
+We can finally define our typing judgment for variables, expressions and processes -- some are omitted for brevity.
 
 \begin{mathpar}
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
@@ -221,27 +225,23 @@ We can finally define our typing judgment for variables, expressions and process
      
 \section{Inference}\label{inference}
 
-Co-contextual type inference: traverses the syntax bottom up, collecting
-constraints on the typing context.
+Co-contextual type inference traverses processes bottom up collecting constraints.
+Limiting the information flow to being bottom up has the advantage of making inference subproblems independent and thus easily parallelisable.
+For the shared \picalc{}, inference constraints amount to unification problems that can always be eagerly solved.
+The linear \picalc{} however requires that some constraints are deferred to a later stage, when more information is available.
 
-Constraints can be of the following form:
+Let us suppose we can safely instantiate to $\tzero$ every usage annotation that is unrestricted.
+Consider the open process $\ssend~a~\sunit~(\ssend~x~a~\send)$ where $x$ and $a$ are free: we send the unit over $a$, then send $a$ over $x$ and terminate.
+By the time we reach $\send$ both $x$ and $a$ must be unrestricted, and thus channel $x$ must be of some type $\tchan~\tzero~\tone~t$.
+Since we send a unit over $a$, $a$ must be of some type $s$ such that $\tSplit{s}{\tchan~\tzero~\tone~\tunit}{t}$.
+From this we can infer that both $s$ and $t$ must be a channel type and thus $\tSplit{s_i}{\tzero}{t_i}$ and $\tSplit{s_o}{\tone}{t_o}$ for some $s_i$, $t_i$, $s_o$ and $t_o$, but we cannot infer their usage annotations: all we can deduce is their lower bounds $\tzero$ and $\tone$.
+We must defer the resolution of these constraints until more information becomes available about the context of this open process.
 
-\begin{itemize}
-\item
-  \(S = T\): types \(S\) and \(T\) must be unifiable.
-\item
-  \(S = T + R\): adding up the usage annotations in \(T\) and \(R\) must
-  result in \(S\).
-\end{itemize}
+We present two kinds of constraints, showcase how to encode inference problems for some of the typing rules in \autoref{type-system}, and state the lemmas that will allow us to show that our approach to inference is both sound and complete.
 
-Constraints of the form \(S = T\) can always be eagerly unified. However
-constraints of the form \(S = T + R\) might contain variables:
-\(\texttt{mvar}~x = \texttt{mvar}~y + \texttt{mvar}~z\). In an open
-process, these variables cannot safely be instantiated to \(0\). As
-such, no substitution is possible, yet we need to remember the
-constraint. (It might also be that some constraints have more than one
-possible solution.) At the same time, we need to show that the
-constraints that we postulate are enough to solve the problem.
+Constraints take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are meant to be unified, and the ternary $\sumconstr{S}{T}{R}$, where the usage annotations in $T$ and $R$ are meant to be added up to $S$.
+Both these constraints are defined on usage annotations, types, and typing contexts.
+Constraints of the former form can \emph{always} be eagerly solved, while constraints of the latter \emph{sometimes} cannot, and must be deferred.
 
 \paragraph{Constraint Satisfaction}
 
