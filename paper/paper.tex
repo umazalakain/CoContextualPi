@@ -14,6 +14,8 @@
 
 % Syntax types
 \newcommand{\Fin}[1]{\type{Fin}~#1}
+\newcommand{\fzero}{\constr{zero}}
+\newcommand{\fsuc}{\constr{suc}}
 \newcommand{\sExpr}[1]{\type{Expr}~#1}
 \newcommand{\sProc}[1]{\type{Proc}~#1}
 \newcommand{\tvar}[2]{#1 ~\type{\ni_t}~ #2}
@@ -169,13 +171,23 @@ Splits on usage annotations are defined as follows -- note that they are not nec
 \end{mathpar}
 
 A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \cite{Padovani15}.
-\todo{typing judgment for variables}
 
-We can finally define our typing judgment for expressions and processes. \todo{formation rules double lined}
+We can finally define our typing judgment for variables, expressions and processes.
 
 \begin{mathpar}
-  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
-             { \tExpr{\Gamma}{e}{t} }
+%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
+%             { \tVar{\Gamma}{i}{t} }
+
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
+             { \tVar{\Gamma,t}{\fzero}{t} }
+             \rulename{zero}
+
+  \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{\gamma} \\ \tun{s} }
+             { \tVar{\Gamma,s}{\fsuc~i}{t} }
+             \rulename{suc}
+
+%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
+%             { \tExpr{\Gamma}{e}{t} }
 
   \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} } \rulename{var}
 
@@ -189,18 +201,21 @@ We can finally define our typing judgment for expressions and processes. \todo{f
              { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
              \rulename{pair}
 
-  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
-             { \tProc{\Gamma}{p} }
+%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
+%             { \tProc{\Gamma}{p} }
 
   \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} } \rulename{end}
 
   \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
+             \rulename{new}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
              { \tProc{\Gamma}{\srecv~e~p} }
+             \rulename{recv}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tsum~s~t} \\ \tProc{\Theta,s}{p} \\ \tProc{\Theta,t}{q} }
              { \tProc{\Gamma}{\scase~e~p~q} }
+             \rulename{case}
 \end{mathpar}
 
      
