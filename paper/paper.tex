@@ -87,19 +87,16 @@
 
 \begin{abstract}
   The linear \picalc{} is a well-known substructural type system for the \picalc{}:
-  it is a common target for the encoding of session-typed languages \cite{DardhaGS17},
-  and it in direct correspondence with classical linear logic \todo{cite}.
+  it is a common target for the encoding of session-typed languages \cite{DardhaGS17}
+  and in direct correspondence with classical linear logic \todo{cite}.
 
-  Type inference for the linear \picalc{} comes with its own challenges:
-  for one, processes themselves are untyped, and thus typing constraints only apply to the typing contexts;
-  moreover, typing constraints on usage annotations \emph{cannot always be eagerly solved in open processes}.
+  For the type checking of the linear \picalc{} to be decidable the newly created channels must have their types synthesized.
+  Inferring these types can prove challenging, as not all their typing constraints are local.
+  Moreover, some typing constraints cannot be eagerly solved and need to be deferred.
 
-  We approach the first challenge using \emph{co-contextual type inference} \cite{ErdwegBKKM15}, where processes are traversed bottom-up and constraints are collected (and when possible eagerly solved) and merged on context splits.
-  We approach the latter challenge by allowing the resolution of some of the constraints to be deferred.
-  We state soundness and completeness theorems that take this deferral of constraint resolution into account.
-  We state a progress (?) theorem that shows that only those constraints that need to be deferred are deferred.
-  \todo{be more precise}
-  We are working on mechanising our work in Agda.
+  Following \cite{Padovani15}, we split this problem in two: first we provide a \emph{co-contextual type inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up collecting constraints and merging them on context splits; then we solve some of these constraints using well-known unification algorithms \cite{McBride03}, while we defer the resolution of those constraints that lack enough information.
+  We provide clear soundness and completeness theorems for both these stages, and show that only those constraints that lack enough information are deferred.
+  The totality of this work is being mechanised in Agda.
 \end{abstract}
 
 
@@ -107,19 +104,25 @@
 
 \section{Introduction}\label{introduction}
 
-We define an untyped but well scoped \picalc{} using type-level de Bruijn \cite{deBruijn72} indices \autoref{syntax}.
-We define a small expression language within the process syntax to handle composite sum and product types.
-On top of the well-scoped syntax we provide the standard linear type-system using context-splits \autoref{type-system}.
-The type system is indexed by a typing context that admits unsolved metavariables.
-These unsolved metavariables are however well kinded: either types or usage annotations.
+Consider a linear \picalc{} process with a free channel variable $x$ and wherein we create a new channel $y$, use $y$ to transmit, then send $y$ away over $x$ and terminate.
+Unless the payload type of $x$ is determined elsewhere, in this process the usage annotations for the channel $y$ are polymorphic, yet the output capability on $y$ requires a lower bound of multiplicity $\tone$ (since the process uses it to transmit).
+While some of the constraints on $x$ and $y$ can be eagerly solved, others are non-local and need to be deferred.
 
-\todo{insert example showing why we need deferral}
+We approach this problem by breaking down typing inference into the collection of constraints \autoref{inference} and their (partial) resolution \autoref{constraint-resolution}.
+We start defining an untyped but well scoped \picalc{} using type-level de Bruijn \cite{deBruijn72} indices \autoref{syntax}.
+The syntax for processes contains a small expression syntax that handles composite sum and product types.
+On top of the well-scoped syntax we define a standard linear type system using context-splits \autoref{type-system}.
 
-We split typing inference into constraint collection and constraint solving \autoref{inference}.
-We start by defining constraints on types and usage annotations \autoref{constraints}
-We collect constraints bottom-up, creating extra \emph{merging} constraints on context splits.
-This allows type-inference to be easily parallelisable.
-We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
+Constraints are defined on types and usage annotations alike \autoref{constraints}.
+We use a common metavariable context for both types and usage annotations.
+The metavariable context is kinded, ans substitution is defined so that it respects kindedness.
+In \autoref{inference} constraints are collected bottom-up, making type-inference easily parallelisable.
+Context splits are solved by creating a fresh extra context and constraints that \emph{merge} the three.
+We prove a soundness theorem and postulate a completeness theorem, both allowing for constraint solving to be deferred \autoref{inference-theorems}.
+
+Constraints of the form $\eqconstr{x}{y}$ are solved by unification using a kinded version of \cite{McBride03}.
+Constraints of the form $\eqconstr{x}{y}{z}$ are solved recursively until a base case is reached, when they are either admitted as valid or deferred.
+We postulate soundness and completeness theorems and show that only those constraints without a unique solution are deferred.
 
 (Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and we are sorry this is not a wee poem.)
 
