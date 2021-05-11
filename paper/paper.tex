@@ -105,24 +105,23 @@
 \section{Introduction}\label{introduction}
 
 Consider a linear \picalc{} process with a free channel variable $x$ and wherein we create a new channel $y$, use $y$ to transmit, then send $y$ away over $x$ and terminate.
-Unless the payload type of $x$ is determined elsewhere, in this process the usage annotations for the channel $y$ are polymorphic, yet the output capability on $y$ requires a lower bound of multiplicity $\tone$ (since the process uses it to transmit).
-While some of the constraints on $x$ and $y$ can be eagerly solved, others are non-local and need to be deferred.
+Unless the payload type of $x$ is determined elsewhere, the usage annotations for the channel $y$ are polymorphic, and the output capability on $y$ requires a lower bound of multiplicity $\tone$ (since the process uses it to transmit).
+This lower bound is a constraint that cannot be solved locally: it needs to be deferred until it is further constrained.
 
-We approach this problem by breaking down typing inference into the collection of constraints \autoref{inference} and their (partial) resolution \autoref{constraint-resolution}.
-We start defining an untyped but well scoped \picalc{} using type-level de Bruijn \cite{deBruijn72} indices \autoref{syntax}.
-The syntax for processes contains a small expression syntax that handles composite sum and product types.
-On top of the well-scoped syntax we define a standard linear type system using context-splits \autoref{type-system}.
+We break down typing inference into the collection of constraints (\autoref{inference}) and their (partial) resolution (\autoref{constraint-resolution}).
+We start defining an untyped but well scoped \picalc{} using type-level de Bruijn \cite{deBruijn72} indices (\autoref{syntax}).
+The syntax for processes contains a small expression language that handles composite sum and product types.
+On top of the well-scoped syntax we define a standard linear type system that uses context-splits (\autoref{type-system}).
 
-Constraints are defined on types and usage annotations alike \autoref{constraints}.
-We use a common metavariable context for both types and usage annotations.
-The metavariable context is kinded, ans substitution is defined so that it respects kindedness.
-In \autoref{inference} constraints are collected bottom-up, making type-inference easily parallelisable.
+Types and usage annotations contain kinded metavariables (holes) part of a common metavariable context.
+Substitution respects kindedness, and constraints are uniformly defined over both types and usage annotations.
+Constraints are collected bottom-up (\autoref{inference}), which makes type-inference easily parallelisable.
 Context splits are solved by creating a fresh extra context and constraints that \emph{merge} the three.
-We prove a soundness theorem and postulate a completeness theorem, both allowing for constraint solving to be deferred \autoref{inference-theorems}.
+We prove a soundness theorem and postulate a completeness theorem, both use deferred constraints (\autoref{inference-theorems}).
 
 Constraints of the form $\eqconstr{x}{y}$ are solved by unification using a kinded version of \cite{McBride03}.
-Constraints of the form $\eqconstr{x}{y}{z}$ are solved recursively until a base case is reached, when they are either admitted as valid or deferred.
-We postulate soundness and completeness theorems and show that only those constraints without a unique solution are deferred.
+Constraints of the form $\sumconstr{x}{y}{z}$ are solved recursively until a base case is reached, when they are either admitted as valid or deferred.
+We postulate soundness and completeness theorems and show that only those constraints without a unique solution are deferred (\autoref{constraint-resolution-theorems}).
 
 (Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and we are sorry this is not a wee poem.)
 
@@ -351,22 +350,15 @@ Any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold 
 
 \paragraph{Progress.}
 
-Nothing prevents us from returning the original constraints as output.
-We therefore promise that every constraint we return is either currently
-unsolvable because we have not enough information, or is unsatisfiable
+To keep us from returning the original constraints as output we show that every constraint we return is either unsatisfiable or not uniquely constrained and has to be deferred.
 altogether.
 \begin{flalign*}
 &\func{solve}~cs_1 \equiv (\sigma, cs_2) \to \forall c \in cs_2. ~ \type{IsDeferred}~c ~ \type{\uplus} ~ \type{IsUnsat}~c &&
 \end{flalign*}
 where
 \begin{flalign*}
-& \type{IsUnsat}~c \triangleq \forall \sigma. ~ \neg \interpr{\subst{\sigma}{c}} &&
-\end{flalign*}
-
-\paragraph{Instantiation.}
-
-\begin{flalign*}
-& \forall c. ~ \type{IsDeferred}~c \to \exists \sigma. \interpr{\subst{\sigma}{c}} &&
+& \type{IsUnsat}~c \triangleq \forall \sigma. ~ \neg \interpr{\subst{\sigma}{c}} && \\
+& \type{IsNotUnique}~c \triangleq \exists \sigma_1. \interpr{\subst{\sigma_1}{c}} \times \exists \sigma_2. ~ \interpr{\subst{\sigma_2}{c}} \times \sigma_1 \not\doteq \sigma_2 &&
 \end{flalign*}
 
 \bibliographystyle{abbrvnat}
