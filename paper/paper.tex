@@ -63,13 +63,17 @@
 \newcommand{\tomega}{\constr{\omega\cdot}}
 
 \newcommand{\subst}[2]{#1 ~ \func{\triangleleft} ~ #2}
+\newcommand{\tSubst}[2]{\type{Subst}~#1~#2}
+\newcommand{\interpr}[1]{\func{[\![} #1 \func{]\!]}}
 
 % Constraint constructors
 \newcommand{\eqconstr}[2]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{]}}
 \newcommand{\sumconstr}[3]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{+} ~ #3 ~ \constr{]}}
 
-\title{Extended Abstract}
-\subtitle{Co-Contextual Type Inference for the Linear \Picalc{} in Agda}
+\title
+[Co-Contextual Type Inference for the Linear \Picalc{} in Agda]
+{Co-Contextual Type Inference \\ for the Linear \Picalc{} \\ in Agda}
+\subtitle{(Extended Abstract)}
 
 \author{Uma Zalakain}
 \affiliation{University of Glasgow}
@@ -117,7 +121,7 @@ We collect constraints bottom-up, creating extra \emph{merging} constraints on c
 This allows type-inference to be easily parallelisable.
 We postulate soundness and completeness theorems that allow for constraint solving to be deferred \autoref{inference-theorems}.
 
-(Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and I am sorry this is not a wee poem.)
+(Variables are black, $\type{\textrm{types are blue}}$, $\constr{\textrm{constructors are olive green}}$, $\func{\textrm{functions are gray}}$, and we are sorry this is not a wee poem.)
 
 
 \section{Syntax}\label{syntax}
@@ -181,6 +185,7 @@ Splits on usage annotations are defined as follows -- note that they are not nec
 
   \inferrule { } {\tSplit{\tomega}{x}{y}}
 \end{mathpar}
+\todo{generalisation to an algebra?}
 
 A usage annotation $x$, type $t$ or context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $x$ and $t$) \cite{Padovani15}.
 
@@ -256,12 +261,14 @@ We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\g
 
 \paragraph{Substitution}
 
+\todo{Introduce Subst type}
+
 We encode substitution as a function $\subst{\_}{\_}$ of type $(\forall k \to \tvar{\gamma}{k} \to \tkind{\delta}{k}) \to (\forall k \to \tkind{\gamma}{k} \to \tkind{\delta}{k})$ that acts on usage annotations and types and typing contexts, and that freely alters the metavariable context.
 We define substitutions on constraints pointwise on their arguments.
 
 \paragraph{Constraint satisfaction}
 
-We use a $\func{[\![\_]\!]}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
+We use a $\interpr{\_}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
 
 \paragraph{Inference}
 
@@ -273,6 +280,7 @@ We define a similar function for type inference on expressions, this time also r
 $$
 \func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \ttype{\gamma} \times \tConstrs{\gamma}
 $$
+This functions are total: if processes and expressions are untypable, their constraints will simply be unsolvable.
 Let us provide a couple of examples illustrating how this function is defined:
 \begin{itemize}
 \item
@@ -283,38 +291,28 @@ Let us provide a couple of examples illustrating how this function is defined:
   For the expression $\scase~e~p~q$ we first recursively infer $p$ and $q$ and $e$: $\func{inferProc}~p = \theta_p, (\Theta_p, s) , Cs_p$, $\func{inferProc}~q = \theta_q, (\Theta_q, t) , Cs_q$, and $\func{inferExpr}~e = \delta_e, \Delta_e, \tau, Cs_e$.
   We create a new metavariable context $\gamma$ and a new typing context $\Gamma$ where every type is a fresh metavariable in $\gamma$.
   We take the union of the metavariables in $\gamma$, $\theta_p$, $\theta_q$ and $\delta_e$
-  We take the union of the constraints in $Cs_p$, $Cs_q$ and $Cs_e$, and create new constraints $\eqconstr{\Theta_p}{\Theta_q}$, $\sumconstr{\Gamma}{\Delta_e}{\Theta_p}$, and $\eqconstr{\tau}{\tprod~s~t}$ and return $\Gamma$ as the inferred context.
+  We take the union of the constraints in $Cs_p$, $Cs_q$ and $Cs_e$, and create new constraints $\eqconstr{\Theta_p}{\Theta_q}$, $\sumconstr{\Gamma}{\Delta_e}{\Theta_p}$, and $\eqconstr{\tau}{\tsum~s~t}$ and return $\Gamma$ as the inferred context.
 \end{itemize}
 
 \paragraph{Inference soundness.}
 
-Every substitution \(\sigma\) that makes the constraints hold will make
-the process typable under the substituted context. \[
-\begin{aligned}
-\texttt{infer-sound} &: \forall (p : \texttt{Proc}~n). ~ \texttt{infer}~P \equiv \gamma , \Gamma , cs \\
-&\to \forall (\sigma : \texttt{Subst}~\gamma~\delta). ~ [\![ \sigma \triangleleft cs ]\!] \\
-&\to (\sigma \triangleleft \Gamma) \vdash P
-\end{aligned}
-\]
+Every substitution \(\sigma\) that makes the constraints hold will make the process typable under the substituted context.
+\begin{flalign*}
+& \tEq{\func{infer}~p}{\gamma , \Gamma , cs} \to (\sigma : \tSubst{\gamma}{\delta}) \to \interpr{\subst{\sigma}{cs}} \to \tProc{(\subst{\sigma}{\Gamma})}{p} &&
+\end{flalign*}
 
 \paragraph{Inference completeness.}
 
-For every context \(\Delta\) that makes the process typable there exists
-a most general substitution \(\sigma\) that will solve the constraints
-and which substitutes in \(\Gamma\) to something more general than
-\(\Delta\). \[
-\begin{aligned}
-\texttt{infer-complete} &: \forall (p : \texttt{Proc}~n). ~ \texttt{infer}~P \equiv \gamma , \Gamma , cs \\
-&\to \forall (\Delta : \texttt{Ctx}~n~\gamma). ~ \Delta \vdash P \\
-&\to \exists \delta. ~ \exists (\sigma : \texttt{Subst}~\gamma~\delta). \\
-&\to [\![ \sigma \triangleleft cs ]\!] \times \Delta \subseteq (\sigma \triangleleft \Gamma)
-\end{aligned}
-\] where \[
-\Delta \subseteq \Gamma \triangleq \exists \delta. ~ \exists (\sigma : \texttt{Subst} \_ \delta). ~ \Delta \equiv (\sigma \triangleleft \Gamma)
-\]
+For every context \(\Delta\) that makes the process typable there exists a most general substitution \(\sigma\) that will solve the constraints and which substitutes in \(\Gamma\) to something more general than \(\Delta\).
+\begin{flalign*}
+& \tEq{\func{infer}~p}{\gamma , \Gamma , cs} \to (\Delta : \tCtx{n}{\gamma}) \to \tProc{\Delta}{p} && \\
+&\to \exists \delta. ~ \exists (\sigma : \texttt{Subst}~\gamma~\delta). \interpr{\subst{\sigma}{cs}} \times (\tProc{\subst{\sigma}{\Gamma}}{p}) \times \Delta \subseteq (\subst{\sigma}{\Gamma}) &&
+\end{flalign*}
+where $$
+\Delta \func{\subseteq} \Gamma \triangleq \exists \delta. ~ \exists (\sigma : \tSubst{\_}{\delta}). ~ \tEq{\Delta}{(\subst{\sigma}{\Gamma})}
+$$
 
-\hypertarget{constraint-resolution}{%
-\section{Constraint Resolution}\label{constraint-resolution}}
+\section{Constraint Resolution}\label{constraint-resolution}
 
 
 \cite{McBride03}
@@ -326,57 +324,47 @@ return (hopefully) some further substitutions, and a set of leftover
 constraints to which the substitutions have been applied. These leftover
 constraints can either not be simplified or are unsatisfiable. \[
 \begin{aligned}
-\texttt{solve} &: \texttt{Subst}~\gamma~\delta \times \texttt{List}~(\texttt{Constr}~\delta) \\
-&\to \texttt{Subst}~\gamma~\phi \times \texttt{List}~(\texttt{Constr}~\phi)
+\func{solve} &: \tConstrs{\gamma} \to \tSubst{\gamma}{\delta} \times \tConstrs{\delta}
 \end{aligned}
 \]
 
 \paragraph{Soundness.}
 
-The simplified constraints are enough to entail the original
-constraints. \[
+The simplified constraints are enough to entail the original constraints.
+\[
 \begin{aligned}
-\texttt{solve-sound}
-&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
-&\to \forall (\sigma_f : \texttt{Subst}~\gamma~\delta) \\
-& \to [\![ \sigma_f \triangleleft cs_2 ]\!] \to [\![ \sigma_f \cdot \sigma_2 \triangleleft cs_1 ]\!]
+& ~ \tEq{\func{solve}~cs_1}{(\sigma, cs_2)} \to (\sigma_f : \tSubst{\gamma}{\delta}) \\
+\to& \interpr{\subst{\sigma_f}{cs_2}} \to \interpr{\subst{\sigma_f \cdot \sigma}{cs_1}}
 \end{aligned}
 \]
 
 \paragraph{Completeness.}
 
-Any substitution \(\sigma_f\) that makes the original constraints
-\(cs_1\) hold will be a specialisation \(\sigma_f\) of our returned
-substitution \(\sigma_2\). The specialisation \(\sigma_g\) will make the
-returned constraints \(cs_2\) hold. \[
-\begin{aligned}
-\texttt{solve-sound}
-&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
-&\to \forall (\sigma_f : \texttt{Subst}~\gamma~\delta). ~ [\![ \sigma_f \triangleleft cs_1 ]\!] \\
-&\to \exists (\sigma_g : \sigma_f = \sigma_g \cdot \sigma_2) \times [\![ \sigma_g \triangleleft cs_2 ]\!]
-\end{aligned}
-\]
+Any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold will be a specialisation \(\sigma_f\) of our returned substitution \(\sigma_2\). The specialisation \(\sigma_g\) will make the returned constraints \(cs_2\) hold.
+\begin{flalign*}
+&\tEq{\func{solve}~cs_1}{(\sigma, cs_2)} \to (\sigma_f : \tSubst{\gamma}{\delta}) \to \interpr{\subst{\sigma_f}{cs_1}} && \\
+&\to \exists (\sigma_g : \tSubst{\_}{\delta}). ~ \tEq{\sigma_f}{\sigma_g \cdot \sigma} \times \interpr{\subst{\sigma_g}{cs_2}} &&
+\end{flalign*}
 
 \paragraph{Progress.}
 
 Nothing prevents us from returning the original constraints as output.
 We therefore promise that every constraint we return is either currently
 unsolvable because we have not enough information, or is unsatisfiable
-altogether. \[
-\begin{aligned}
-\texttt{solve-sound}
-&: \texttt{solve}~(\sigma_1, cs_1) \equiv (\sigma_2, cs_2) \\
-&\to \forall c \in cs_2. ~ \texttt{IsDeferred}~c \uplus \texttt{IsUnsat}~c
-\end{aligned}
-\] where \[
-\texttt{IsUnsat}~c = \forall \sigma. ~ \neg [\![ \sigma \triangleleft c ]\!]
-\]
+altogether.
+\begin{flalign*}
+&\func{solve}~cs_1 \equiv (\sigma, cs_2) \to \forall c \in cs_2. ~ \type{IsDeferred}~c ~ \type{\uplus} ~ \type{IsUnsat}~c &&
+\end{flalign*}
+where
+\begin{flalign*}
+& \type{IsUnsat}~c \triangleq \forall \sigma. ~ \neg \interpr{\subst{\sigma}{c}} &&
+\end{flalign*}
 
 \paragraph{Instantiation.}
 
-\[
-\forall c. ~ \texttt{IsDeferred}~c \to \exists \sigma. [\![ \sigma \triangleleft c ]\!]
-\]
+\begin{flalign*}
+& \forall c. ~ \type{IsDeferred}~c \to \exists \sigma. \interpr{\subst{\sigma}{c}} &&
+\end{flalign*}
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
