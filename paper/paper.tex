@@ -47,6 +47,7 @@
 \newcommand{\srecv}{\constr{recv}}
 \newcommand{\ssend}{\constr{send}}
 \newcommand{\scase}{\constr{case}}
+\newcommand{\srec}{\constr{rec}}
 
 % Kind constructors
 \newcommand{\ktype}{\constr{ty}}
@@ -144,10 +145,9 @@ Expressions $e_n$ and $f_n$ are of type $\sExpr{n}$, processes $p_n$ and $q_n$ a
   |&~ \srecv~e_n~p_{1+n} \\
   |&~ \ssend~e_n~f_n~p_n \\
   |&~ \scomp~p_n~q_n \\
-  |&~ \scase~e_n~p_{1+n}~q_{1+n}
+  |&~ \scase~e_n~p_{1+n}~q_{1+n} \\
 \end{aligned}
 \]
-\todo{add recursion}
 \todo{add type assertions}
 
 \section{Type System}\label{type-system}
@@ -174,7 +174,7 @@ We define well kinded types and usage annotations simultaneously so that we are 
 
   \inferrule { } {\tzero ~|~ \tone ~|~ \tomega : \tkind{\gamma}{\kusage}}
 \end{mathpar}
-We will henceforth use $\ttype{\gamma}$ to stand for $\tkind{\gamma}{\ktype}$ and $\tusage{\gamma}$ to stand for $\tkind{\gamma}{\kusage}$.
+We henceforth use $\ttype{\gamma}$ to stand for $\tkind{\gamma}{\ktype}$ and $\tusage{\gamma}$ to stand for $\tkind{\gamma}{\kusage}$.
 
 A context $\Gamma$ of type $\tCtx{n}{\gamma}$ is a list of $\ttype{\gamma}$ of size $n$.
 We define context splits $\tSplit{\Gamma}{\Delta}{\Theta}$ pointwise on types.
@@ -199,42 +199,51 @@ We can finally define our typing judgment for variables, expressions and process
 
   \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
              { \tVar{\Gamma,t}{\fzero}{t} }
-             \rulename{zero}
+             % \rulename{zero}
 
   \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{\gamma} \\ \tun{s} }
              { \tVar{\Gamma,s}{\fsuc~i}{t} }
-             \rulename{suc}
+             % \rulename{suc}
 
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
 %             { \tExpr{\Gamma}{e}{t} }
 
-  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} } \rulename{var}
+  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} }
+             % \rulename{var}
 
-  \inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} } \rulename{unit}
+  \inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} }
+             % \rulename{unit}
 
-  \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} { \tExpr{\Gamma}{\sfst~e}{t}} \rulename{fst}
+  \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} {\tExpr{\Gamma}{\sfst~e}{t}}
+             % \rulename{fst}
 
-  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}} \rulename{inl}
+  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}}
+             % \rulename{inl}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
              { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
-             \rulename{pair}
+             %\rulename{pair}
 
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
 %             { \tProc{\Gamma}{p} }
 
-  \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} } \rulename{end}
+  \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} }
+             %\rulename{end}
+
+  \inferrule { \tProc{\Gamma}{p} \\ \tun{\Gamma} }
+             { \tProc{\Gamma}{\srec~p} }
+             %\rulename{rec}
 
   \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
-             \rulename{new}
+             %\rulename{new}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
              { \tProc{\Gamma}{\srecv~e~p} }
-             \rulename{recv}
+             %\rulename{recv}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tsum~s~t} \\ \tProc{\Theta,s}{p} \\ \tProc{\Theta,t}{q} }
              { \tProc{\Gamma}{\scase~e~p~q} }
-             \rulename{case}
+             %\rulename{case}
 \end{mathpar}
 
      
@@ -256,7 +265,7 @@ We present two kinds of constraints, showcase how to encode inference problems f
 
 \paragraph{Constraints}
 
-Constraints are of type $\tConstr{\gamma}$ and are defined on arguments of type $\tkind{\gamma}{k}$ for some $k$ --- that is, both usage annotations and types.
+Constraints of type $\tConstr{\gamma}$ are defined on arguments of type $\tkind{\gamma}{k}$ for some $k$ --- that is, both usage annotations and types.
 They take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are meant to be unified, and the ternary $\sumconstr{S}{T}{R}$, where $T$ and $R$ are meant to be added up to $S$.
 Constraints of the former form can \emph{always} be eagerly solved, while constraints of the latter \emph{sometimes} cannot, and must be deferred.
 We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\gamma}$.
@@ -268,7 +277,7 @@ We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\g
 We encode substitution as a function $\subst{\_}{\_}$ of type $(\forall k \to \tvar{\gamma}{k} \to \tkind{\delta}{k}) \to (\forall k \to \tkind{\gamma}{k} \to \tkind{\delta}{k})$ that acts on usage annotations and types and typing contexts, and that freely alters the metavariable context.
 We define substitutions on constraints pointwise on their arguments.
 
-\paragraph{Constraint satisfaction}
+\paragraph{Constraint Satisfaction}
 
 We use a $\interpr{\_}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$.
 
@@ -296,14 +305,14 @@ Let us provide a couple of examples illustrating how this function is defined:
   We take the union of the constraints in $Cs_p$, $Cs_q$ and $Cs_e$, and create new constraints $\eqconstr{\Theta_p}{\Theta_q}$, $\sumconstr{\Gamma}{\Delta_e}{\Theta_p}$, and $\eqconstr{\tau}{\tsum~s~t}$ and return $\Gamma$ as the inferred context.
 \end{itemize}
 
-\paragraph{Inference soundness.}
+\paragraph{Inference Soundness}
 
 Every substitution \(\sigma\) that makes the constraints hold will make the process typable under the substituted context.
 \begin{flalign*}
 & \tEq{\func{infer}~p}{\gamma , \Gamma , cs} \to (\sigma : \tSubst{\gamma}{\delta}) \to \interpr{\subst{\sigma}{cs}} \to \tProc{(\subst{\sigma}{\Gamma})}{p} &&
 \end{flalign*}
 
-\paragraph{Inference completeness.}
+\paragraph{Inference Completeness}
 
 For every context \(\Delta\) that makes the process typable there exists a most general substitution \(\sigma\) that will solve the constraints and which substitutes in \(\Gamma\) to something more general than \(\Delta\).
 \begin{flalign*}
@@ -314,12 +323,12 @@ where $$
 \Delta \func{\subseteq} \Gamma \triangleq \exists \delta. ~ \exists (\sigma : \tSubst{\_}{\delta}). ~ \tEq{\Delta}{(\subst{\sigma}{\Gamma})}
 $$
 
-\section{Constraint Resolution}\label{constraint-resolution}
 
+\paragraph{Constraint Resolution}
 
+\todo{talk about unification}
 \cite{McBride03}
-
-\paragraph{Constraint Resolution.}
+\label{constraint-resolution}
 
 Given a set of accumulated substitutions and some constraints, we will
 return (hopefully) some further substitutions, and a set of leftover
@@ -330,7 +339,7 @@ constraints can either not be simplified or are unsatisfiable. \[
 \end{aligned}
 \]
 
-\paragraph{Soundness.}
+\paragraph{Resolution Soundness}
 
 The simplified constraints are enough to entail the original constraints.
 \[
@@ -340,7 +349,7 @@ The simplified constraints are enough to entail the original constraints.
 \end{aligned}
 \]
 
-\paragraph{Completeness.}
+\paragraph{Resolution Completeness}
 
 Any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold will be a specialisation \(\sigma_f\) of our returned substitution \(\sigma_2\). The specialisation \(\sigma_g\) will make the returned constraints \(cs_2\) hold.
 \begin{flalign*}
@@ -348,7 +357,7 @@ Any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold 
 &\to \exists (\sigma_g : \tSubst{\_}{\delta}). ~ \tEq{\sigma_f}{\sigma_g \cdot \sigma} \times \interpr{\subst{\sigma_g}{cs_2}} &&
 \end{flalign*}
 
-\paragraph{Progress.}
+\paragraph{Resolution Progress}
 
 To keep us from returning the original constraints as output we show that every constraint we return is either unsatisfiable or not uniquely constrained and has to be deferred.
 altogether.
