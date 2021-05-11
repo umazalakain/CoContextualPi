@@ -276,13 +276,14 @@ $$
 Let us provide a couple of examples illustrating how this function is defined:
 \begin{itemize}
 \item
-  For the expression $\sfst~e$ we first recursively infer the metavariable context $\gamma$, the typing context $\Gamma$, the type $\tau$ and the constraints $Cs$ for $e$.
-  We then add two fresh metavariables $?t$ and $?s$ of kind $\ktype$ to $\gamma$, add constraints $\eqconstr{\tau}{\tprod~?t~?s}$ and $\sumconstr{?s}{?s}{?s}$ to $cs$, and return $?t$ as the type of $e$.
+  For the expression $\sfst~e$ we first recursively infer $e$: $\func{inferExpr}~e = \gamma,\Gamma,\tau,Cs$.
+  We then add two fresh metavariables $?t$ and $?s$ of kind $\ktype$ to $\gamma$, add constraints $\eqconstr{\tau}{\tprod~?t~?s}$ and $\sumconstr{?s}{?s}{?s}$ to $cs$, then return $?t$ as the type of $e$.
 
 \item
-  For the expression $\scase~e~p~q$ we first recursively infer $p$ and $q$ and $e$: $\func{inferProc}~p = \gamma_p, (\Gamma_p, s) , Cs_p$, $\func{inferProc}~q = \gamma_q, (\Gamma_q, t) , Cs_q$, and $\func{inferExpr}~e = \gamma_e, \Gamma_e, \tau, Cs_e$.
-  We add the metavariables in $\gamma_p$ to the ones in $\gamma_q$ and a new metavariable $?r$ of kind $\ktype$, and refer to the result as $\delta$.
-  We add the constraints in $Cs_p$  to the ones in $Cs_q$ and create new constraints $\eqconstr{\Gamma_p}{\Gamma_q}$ 
+  For the expression $\scase~e~p~q$ we first recursively infer $p$ and $q$ and $e$: $\func{inferProc}~p = \theta_p, (\Theta_p, s) , Cs_p$, $\func{inferProc}~q = \theta_q, (\Theta_q, t) , Cs_q$, and $\func{inferExpr}~e = \delta_e, \Delta_e, \tau, Cs_e$.
+  We create a new metavariable context $\gamma$ and a new typing context $\Gamma$ where every type is a fresh metavariable in $\gamma$.
+  We take the union of the metavariables in $\gamma$, $\theta_p$, $\theta_q$ and $\delta_e$
+  We take the union of the constraints in $Cs_p$, $Cs_q$ and $Cs_e$, and create new constraints $\eqconstr{\Theta_p}{\Theta_q}$, $\sumconstr{\Gamma}{\Delta_e}{\Theta_p}$, and $\eqconstr{\tau}{\tprod~s~t}$ and return $\Gamma$ as the inferred context.
 \end{itemize}
 
 \paragraph{Inference soundness.}
