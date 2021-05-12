@@ -119,17 +119,15 @@ Both types and usage annotations contain metavariables (holes).
 We keep a common context of metavariables for both types and usage annotations and use kinds to distinguish them.
 Substitution respects kindedness, and constraints are uniformly defined over both types and usage annotations.
 Context splits are solved by creating an extra fresh context together with constraints that bind the three.
-We prove that the collection of constraints is sound and postulate a completeness theorem (\autoref{constraint-collection}).
+\textbf{We prove that the collection of constraints is sound and postulate a completeness theorem} (\autoref{constraint-collection}).
 
 Constraints of the form $\eqconstr{x}{y}$ are solved by unification using a kinded version of McBride's unification by structural recursion \cite{McBride03}.
 Constraints of the form $\sumconstr{x}{y}{z}$ are solved recursively until a base case is reached, at which point they are either admitted as valid (and result in a substitution), not uniquely determined, or unsatisfiable.
-We postulate soundness and completeness theorems for constraint solving and show that only those constraints without a unique solution are deferred (\autoref{constraint-resolution}).
+\textbf{We postulate soundness and completeness theorems for constraint solving and show that only those constraints without a unique solution are deferred} (\autoref{constraint-resolution}).
 
-\paragraph{Contributions}
-\begin{itemize}
-  \item We break down typing inference into constraint collection and constraint resolution and state clear soundness and completeness theorems for both phases.
-  \item We are working on mechanising the proofs for these theorems in Agda. We have already shown the soundness of constraint collection and the soundness of equality constraint resolution (adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms).
-\end{itemize}
+\textbf{The totality of this work is being mechanised in Agda.}
+We have shown the soundness of constraint collection and the soundness of equality constraint resolution (adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms).
+The remainder proofs are still in progress. 
 
 (Variables are black, \textcolor{blue}{types are blue}, \textcolor{olive}{constructors are green}, \textcolor{gray}{functions are gray}, and we are sorry this is not a poem.)
 
