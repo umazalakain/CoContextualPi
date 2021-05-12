@@ -125,7 +125,13 @@ Constraints of the form $\eqconstr{x}{y}$ are solved by unification using a kind
 Constraints of the form $\sumconstr{x}{y}{z}$ are solved recursively until a base case is reached, at which point they are either admitted as valid (and result in a substitution), not uniquely determined, or unsatisfiable.
 We postulate soundness and completeness theorems for constraint solving and show that only those constraints without a unique solution are deferred (\autoref{constraint-resolution}).
 
-(Variables are black, \textcolor{blue}{types are blue}, \textcolor{olive}{constructors are olive green}, \textcolor{gray}{functions are gray}, and we are sorry this is not a wee poem.)
+\paragraph{Contributions}
+\begin{itemize}
+  \item We break down typing inference into constraint collection and constraint resolution and state clear soundness and completeness theorems for both phases.
+  \item We are working on mechanising the proofs for these theorems in Agda. We have already shown the soundness of constraint collection and the soundness of equality constraint resolution (adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms).
+\end{itemize}
+
+(Variables are black, \textcolor{blue}{types are blue}, \textcolor{olive}{constructors are green}, \textcolor{gray}{functions are gray}, and we are sorry this is not a poem.)
 
 
 \section{Type System}
