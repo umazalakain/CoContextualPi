@@ -90,12 +90,13 @@
 \begin{document}
 
 \begin{abstract}
-  Type checking a \picalc{} with linear and shared types without relying on type annotations entails inferring the types of newly created channels.
-  But in the \picalc{} with linear and shared types (also with graded types) processes can partially use a channel and then send it away: in this case, the receiving process might further constraint the channel's inferred type.
-  This means that there are non-local constraints without a most general unifier that we have to keep around.
+  To type check a \picalc{} process with linear and shared types without relying on type annotations we need to infer the types of the channels we create within the process.
+  If we were to limit ourselves to the shared \picalc{}, we could traverse a process bottom-up and always eagerly solve typing constraints into substitutions that are then applied to the typing context.
+  However in our setting, typing constraints do not always come with have a most general unifier, and thus cannot always be eagerly solved.
+  We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collecting typing constraints too.
+  We then solve those constraints with a most general solution by using well-known unification algorithms \cite{McBride03}, and defer the rest until more information becomes available.
 
-  We approach this problem following Padovani \cite{Padovani15}: we provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up collecting constraints, then solve (some of) these constraints using well-known unification algorithms \cite{McBride03} to find the most general unifier, and defer those constraints that do not have one.
-  We state clear soundness and completeness theorems for both these phases and a progress theorem that ensures that only constraints without a most general unifier are deferred.
+  We state clear soundness and completeness theorems for both these phases and a progress theorem that ensures that only those constraints without a most general unifier are deferred.
   The totality of this work is being mechanised in Agda.
 \end{abstract}
 
