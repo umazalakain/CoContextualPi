@@ -1,7 +1,6 @@
 \documentclass[sigplan,screen,review]{acmart}
 
 \usepackage[inline]{enumitem}
-\usepackage{todonotes}
 
 \renewcommand*{\sectionautorefname}{\S\!\!\,}
 \renewcommand*{\subsectionautorefname}{\S\!\!\,}
@@ -105,13 +104,13 @@
 
 \section{Introduction}\label{introduction}
 
-The \picalc{} \todo{cite} models concurrent processing by boiling down concurrent interaction to the transmission of data over communication channels --- where channels too are sent as payload.
-The linear \picalc{} \todo{cite} introduces a type system that ensures that every channel is used \emph{exactly} once.
+The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing by boiling down concurrent interaction to the transmission of data over communication channels --- where channels too are sent as payload.
+The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
 This restriction ensures communication privacy, communication safety, and the absence of race conditions.
 We generalise and admit a \picalc{} where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unrestricted use).
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within a process.
-To do so we can either ask the user for type annotations \todo{cite}, or we can synthesize types by looking at how channels are used.
+To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can synthesize types by looking at how channels are used.
 We follow this latter approach by traversing processes bottom-up while keeping a typing context containing \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing inference \cite{ErdwegBKKM15}.
 Keeping a strictly bottom-up information flow has the additional advantage of making typing inference easily parallelisable.
 Constraints with a most general solution can safely be solved into substitutions and applied to the typing context, constraints without one must be kept around for later: substituting by a solution that is not the most general risks over-constraining the problem down the line.
