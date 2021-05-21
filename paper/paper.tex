@@ -90,12 +90,12 @@
 \begin{document}
 
 \begin{abstract}
-  To type check a \picalc{} process with linear and shared types without relying on type annotations we need to infer the types of the channels we create within the process.
-  If we were to limit ourselves to the shared \picalc{}, we could traverse a process bottom-up and always eagerly solve typing constraints into substitutions that are then applied to the typing context.
-  However in our setting, typing constraints do not always come with have a most general unifier, and thus cannot always be eagerly solved.
-  We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collecting typing constraints too.
-  We then solve those constraints with a most general solution by using well-known unification algorithms \cite{McBride03}, and defer the rest until more information becomes available.
+  To type check a \picalc{} process with linear and shared types without relying on type annotations we need to infer the types of the channels we create within a process.
+  If we were to limit ourselves to the shared \picalc{}, we could traverse a process bottom-up and eagerly solve typing constraints into substitutions that are then applied to the typing context.
+  However in our setting, typing constraints do not always come with have a most general solution, and thus cannot always be eagerly solved.
 
+  We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
+  We then solve those constraints that have a most general solution by using well-known unification algorithms \cite{McBride03}, and defer the rest until more information becomes available.
   We state clear soundness and completeness theorems for both these phases and a progress theorem that ensures that only those constraints without a most general unifier are deferred.
   The totality of this work is being mechanised in Agda.
 \end{abstract}
@@ -114,8 +114,8 @@ To type check a \picalc{} process with shared and linear types we must assign a 
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can synthesize types by looking at how channels are used.
 We follow this latter approach by traversing processes bottom-up while keeping a typing context containing \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing inference \cite{ErdwegBKKM15}.
 Keeping a strictly bottom-up information flow has the additional advantage of making typing inference easily parallelisable.
-Constraints with a most general solution can safely be solved into substitutions and applied to the typing context, constraints without one must be kept around for later: substituting by a solution that is not the most general risks over-constraining the problem down the line.
-Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ (assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint) amounts to emitting the extra constraint $\Gamma = \Delta$.
+Constraints with a most general solution can safely be solved into substitutions and applied to the typing context, constraints without one must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
+Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$ (assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint).
 
 To the best of our knowledge, this problem has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
 However, his work does not appear to be mechanised, and metatheoretical properties like soundness and completeness are only informally addressed.
