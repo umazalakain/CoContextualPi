@@ -91,7 +91,7 @@
 
 \begin{abstract}
   A \picalc{} with linear types ensures the privacy and safety of concurrent communication.
-  Allowing unrestricted non-linear communication however is key to model real-world services.
+  Allowing shared (unlimited) communication however is key to model real-world services.
   To implement a decision procedure that type checks a \picalc{} process with both linear and shared types one can either rely on user-provided type annotations, or infer the types of the channels created within the process.
   We choose to reduce the burden on the user by following the latter approach.
   If we limit ourselves to the shared \picalc{}, we can traverse a process bottom-up and eagerly solve typing constraints into substitutions and apply them to the typing context.
@@ -100,7 +100,7 @@
   We provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
   We then solve those constraints that have a most general solution (by using well-known unification algorithms \cite{McBride03}) while deferring the rest until more information becomes available.
   We state clear soundness and completeness theorems separating both these phases, and a progress theorem that ensures that only those constraints without a most general solution are deferred.
-  The totality of this work is being mechanised in Agda.
+  This work is being mechanised in Agda.
 \end{abstract}
 
 
@@ -111,7 +111,7 @@
 The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing, boiling it down to the transmission of data over communication channels --- where channels too are sent as payload.
 The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
 This restriction ensures communication privacy, communication safety, and the absence of race conditions.
-We generalise to a \picalc{} with linear and shared types, where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unrestricted use).
+We generalise to a \picalc{} with linear and shared types, where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unlimited use).
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
@@ -207,7 +207,7 @@ Splits on usage annotations are defined as follows:
 
   \inferrule { } {\tSplit{\tomega}{x}{y}}
 \end{mathpar}
-Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
+Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
 
 \paragraph{Typing Judgments}
 \label{typing-judgments}
