@@ -90,12 +90,14 @@
 \begin{document}
 
 \begin{abstract}
-  While a \picalc{} with linear types ensures the privacy and safety of concurrent communication, allowing unrestricted non-linear communication is key to model real-world services.
-  To implement a decision procedure that type checks a \picalc{} process with linear and shared types without relying on user-provided type annotations we must infer the types of the channels created within the process.
-  If we limit ourselves to the shared \picalc{}, we can traverse the process bottom-up and eagerly solve typing constraints into substitutions and apply them to the typing context.
+  A \picalc{} with linear types ensures the privacy and safety of concurrent communication.
+  Allowing unrestricted non-linear communication however is key to model real-world services.
+  To implement a decision procedure that type checks a \picalc{} process with both linear and shared types one can either rely on user-provided type annotations, or infer the types of the channels created within the process.
+  We choose to reduce the burden on the user by following the latter approach.
+  If we limit ourselves to the shared \picalc{}, we can traverse a process bottom-up and eagerly solve typing constraints into substitutions and apply them to the typing context.
   However, in a setting with both linear and shared types, typing constraints do not always come with a most general solution, and thus cannot always be eagerly solved.
 
-  We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
+  We provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
   We then solve those constraints that have a most general solution (by using well-known unification algorithms \cite{McBride03}) while deferring the rest until more information becomes available.
   We state clear soundness and completeness theorems separating both these phases, and a progress theorem that ensures that only those constraints without a most general solution are deferred.
   The totality of this work is being mechanised in Agda.
@@ -113,7 +115,7 @@ We generalise to a \picalc{} with linear and shared types, where the input and o
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
-We follow this latter approach: we traverse processes bottom-up while keeping a typing context with \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing \cite{ErdwegBKKM15}.
+To reduce the burden on the user, we follow the latter approach: we traverse processes bottom-up while keeping a typing context with \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing \cite{ErdwegBKKM15}.
 Keeping a strictly bottom-up information flow has the additional advantage of making typing inference easily parallelisable.
 Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without one must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
 Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$, assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint.
