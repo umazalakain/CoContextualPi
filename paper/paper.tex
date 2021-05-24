@@ -90,13 +90,14 @@
 \begin{document}
 
 \begin{abstract}
-  To type check a \picalc{} process with linear and shared types without relying on type annotations we need to infer the types of the channels we create within a process.
-  If we were to limit ourselves to the shared \picalc{}, we could traverse a process bottom-up and eagerly solve typing constraints into substitutions that are then applied to the typing context.
-  However in our setting, typing constraints do not always come with have a most general solution, and thus cannot always be eagerly solved.
+  While a \picalc{} with linear types ensures the privacy and safety of concurrent communication, allowing unrestricted non-linear communication is key to model real-world services.
+  To type check a \picalc{} process with linear and shared types without relying on user-provided type annotations we must infer the types of the channels created within the process.
+  If we limit ourselves to the shared \picalc{}, we can traverse a process bottom-up and eagerly solve typing constraints into substitutions that are then applied to the typing context.
+  However in a setting with both linear and shared types, typing constraints do not always come with have a most general solution, and thus cannot always be eagerly solved.
 
   We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
   We then solve those constraints that have a most general solution by using well-known unification algorithms \cite{McBride03}, and defer the rest until more information becomes available.
-  We state clear soundness and completeness theorems for both these phases and a progress theorem that ensures that only those constraints without a most general unifier are deferred.
+  We state clear soundness and completeness theorems for both these phases, and a progress theorem that ensures that only those constraints without a most general unifier are deferred.
   The totality of this work is being mechanised in Agda.
 \end{abstract}
 
