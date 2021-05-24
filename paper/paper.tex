@@ -91,13 +91,13 @@
 
 \begin{abstract}
   While a \picalc{} with linear types ensures the privacy and safety of concurrent communication, allowing unrestricted non-linear communication is key to model real-world services.
-  To type check a \picalc{} process with linear and shared types without relying on user-provided type annotations we must infer the types of the channels created within the process.
-  If we limit ourselves to the shared \picalc{}, we can traverse a process bottom-up and eagerly solve typing constraints into substitutions that are then applied to the typing context.
-  However in a setting with both linear and shared types, typing constraints do not always come with have a most general solution, and thus cannot always be eagerly solved.
+  To implement a decision procedure that type checks a \picalc{} process with linear and shared types without relying on user-provided type annotations we must infer the types of the channels created within the process.
+  If we limit ourselves to the shared \picalc{}, we can traverse the process bottom-up and eagerly solve typing constraints into substitutions and apply them to the typing context.
+  However, in a setting with both linear and shared types, typing constraints do not always come with a most general solution, and thus cannot always be eagerly solved.
 
   We follow Padovani \cite{Padovani15} and provide a \emph{co-contextual typing inference} \cite{ErdwegBKKM15} algorithm that traverses processes bottom-up and, in addition to the typing context, collects a set of typing constraints.
-  We then solve those constraints that have a most general solution by using well-known unification algorithms \cite{McBride03}, and defer the rest until more information becomes available.
-  We state clear soundness and completeness theorems for both these phases, and a progress theorem that ensures that only those constraints without a most general unifier are deferred.
+  We then solve those constraints that have a most general solution (by using well-known unification algorithms \cite{McBride03}) while deferring the rest until more information becomes available.
+  We state clear soundness and completeness theorems separating both these phases, and a progress theorem that ensures that only those constraints without a most general solution are deferred.
   The totality of this work is being mechanised in Agda.
 \end{abstract}
 
@@ -106,17 +106,17 @@
 
 \section{Introduction}\label{introduction}
 
-The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing by boiling down concurrent interaction to the transmission of data over communication channels --- where channels too are sent as payload.
+The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing, boiling it down to the transmission of data over communication channels --- where channels too are sent as payload.
 The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
 This restriction ensures communication privacy, communication safety, and the absence of race conditions.
-We generalise and admit a \picalc{} where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unrestricted use).
+We generalise to a \picalc{} with linear and shared types, where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unrestricted use).
 
-To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within a process.
-To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can synthesize types by looking at how channels are used.
-We follow this latter approach by traversing processes bottom-up while keeping a typing context containing \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing inference \cite{ErdwegBKKM15}.
+To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
+To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
+We follow this latter approach: we traverse processes bottom-up while keeping a typing context with \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing \cite{ErdwegBKKM15}.
 Keeping a strictly bottom-up information flow has the additional advantage of making typing inference easily parallelisable.
-Constraints with a most general solution can safely be solved into substitutions and applied to the typing context, constraints without one must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
-Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$ (assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint).
+Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without one must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
+Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$, assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint.
 
 To the best of our knowledge, this problem has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
 However, his work does not appear to be mechanised, and metatheoretical properties like soundness and completeness are only informally addressed.
@@ -127,21 +127,21 @@ With this work, we aim to:
 \end{itemize}
 
 We start defining an untyped but well scoped \picalc{} using type-level de Bruijn indices \cite{deBruijn72} and embed a small expression language that handles composite sum and product types.
-On top, we define a standard type system with linear and shared types using context-splits.
-We then provide an overview of how typing inference works, show how constraint collection (\autoref{constraint-collection}) and constraint resolution (\autoref{constraint-resolution}) are defined, and state that both phases are sound and complete with regards to the previously defined type system.
+On top, we define a standard type system with linear and shared types using context-splits \autoref{type-system}.
+We then provide an overview of how typing inference works, define constraint collection (\autoref{constraint-collection}) and constraint resolution (\autoref{constraint-resolution}), and state that both phases are sound and complete with regards to the type system defined in \autoref{type-system}.
 
-We have proven that constraint collection is sound, and adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms, that the resolution of equality constraints is sound.
+We have proven that constraint collection is sound and (adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms) that the resolution of equality constraints is sound too.
 The remaining proofs are still in progress.
 (A note on notation: variables are black, \textcolor{blue}{types are blue}, \textcolor{olive}{constructors are green}, \textcolor{gray}{functions are gray}, and we are sorry this is not a poem.)
 
 
 \section{Type System}
+\label{type-system}
 
 We define a standard syntax and type system for the linear \picalc{}.
 The only non-standard feature is that types allow for \emph{metavariables} within them.
 
 \paragraph{Syntax}
-\label{syntax}
 
 We define a standard syntax for the \picalc{} using type-level de Bruijn indices.
 Variable references $i_n$ are of type $\Fin{n}$, expressions $e_n$ and $f_n$ are of type $\sExpr{n}$, processes $p_n$ and $q_n$ are of type $\sProc{n}$.
@@ -199,7 +199,7 @@ We henceforth use $\ttype{\gamma}$ for $\tkind{\gamma}{\ktype}$ and $\tusage{\ga
 \label{types}
 A context $\Gamma$ of type $\tCtx{n}{\gamma}$ is a list of $\ttype{\gamma}$ of size $n$.
 We define context splits $\tSplit{\Gamma}{\Delta}{\Theta}$ pointwise on types.
-Splits on types are defined recursively pointwise on usage annotations --- note however that only the usage annotations at the top of a channel are split, not those within its payload.
+Splits on types are defined recursively on usage annotations --- note that only the usage annotations at the top of a channel are split, not those within its payload.
 Splits on usage annotations are defined as follows:
 \begin{mathpar}
   \inferrule { } {\tSplit{x}{x}{\tzero}}
@@ -208,11 +208,11 @@ Splits on usage annotations are defined as follows:
 
   \inferrule { } {\tSplit{\tomega}{x}{y}}
 \end{mathpar}
-Following \cite{Padovani15}, we say that a context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ --- (similarly $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$, respectively).
+Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (shared, non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
 
 \paragraph{Typing Judgments}
 \label{typing-judgments}
-We can finally define our typing judgment for variables, expressions and processes (some are omitted for brevity).
+We can finally define our typing judgment for variables, expressions and processes (some cases are omitted for brevity).
 
 \begin{mathpar}
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
@@ -273,8 +273,8 @@ We can finally define our typing judgment for variables, expressions and process
 Co-contextual typing inference traverses processes bottom-up keeping a typing context and collecting constraints.
 This makes inference subproblems independent and thus easily parallelisable.
 In the shared \picalc{}, inference constraints always have a most general unifier, in the shared \emph{and} linear \picalc{} however they do not.
-Consider the open process $\ssend~a~\sunit~(\ssend~x~a~\send)$ where $x$ and $a$ are free: we use part of $a$ to send a unit, then send $a$ away over $x$ and terminate.
-When the process terminates, all multiplicities must be unrestricted, but we cannot commit to either instantiation $\tzero$ or $\tomega$.
+Consider the open process $\ssend~a~\sunit~(\ssend~x~a~\send)$ where $x$ and $a$ are free: we partly use $a$ to send, then send $a$ away over $x$ and terminate.
+When the process terminates, all multiplicities must be unrestricted, but we cannot decide whether to instantiate with $\tzero$ or $\tomega$.
 Similarly, we ignore \emph{how much} of $a$ we are sending away over $x$: that depends on what the receiving process expects.
 Nonetheless, we do have to keep track of the fact that $a$ has been used once to send.
 
@@ -284,9 +284,9 @@ We show that satisfying the constraints generated by typing inference is enough 
 In \autoref{constraint-resolution} we solve equality constraints by unification and context split constraints by decomposition.
 Constraints with a most general solution can be solved into substitutions.
 (Constraints without a most general solution can be solved by instantiation once the process is closed.)
-Solving a set of constraints thus results in a set of substitutions and a set of simplified constraints where those substitutions have already been performed.
+Solving a set of constraints thus results in a set of substitutions and a set of simplified constraints that had those substitutions applied.
 We postulate that satisfying the simplified constraints amounts to satisfying the original constraints after substitution (soundness), and that for every substitution that solves the original constraints we can find a most general substitution that will solve the simplified constraints (completeness).
-Additionally, we postulate that the simplified set of constraints only contains constraints without a most general solution.
+Additionally, we postulate that the simplified set of constraints only contains constraints without a most general solution (progress).
 
 \subsection{Constraint Collection}
 \label{constraint-collection}
@@ -294,7 +294,7 @@ Additionally, we postulate that the simplified set of constraints only contains 
 \paragraph{Constraints}
 
 Constraints of type $\tConstr{\gamma}$ are defined on arguments of type $\tkind{\gamma}{k}$ for some $k$ --- that is, on both usage annotations and types.
-They take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ are meant to be unified, and the ternary $\sumconstr{S}{T}{R}$, where $T$ and $R$ are meant to be added up to $S$.
+They take two forms: the binary $\eqconstr{S}{T}$, where $S$ and $T$ must be unified, and the ternary $\sumconstr{S}{T}{R}$, where $T$ and $R$ must add up to $S$.
 Constraints of the former form can \emph{always} be eagerly solved, while constraints of the latter can \emph{sometimes} not.
 We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\gamma}$.
 
@@ -307,23 +307,21 @@ Substitutions on constraints are defined pointwise on their arguments.
 
 \paragraph{Constraint Satisfaction}
 
-We use a $\interpr{\_}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their proof counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$, respectively.
+We use a $\interpr{\_}$ function to interpret constraints $\eqconstr{S}{T}$ and $\sumconstr{S}{T}{R}$ into their reified counterparts $\tEq{S}{T}$ and $\tSplit{S}{T}{R}$, respectively.
 
 \paragraph{Inference}
 
-% Context splits are solved by creating an extra fresh context together with constraints that bind the three.
-% 
-We encode typing inference as a function that takes a process with $n$ free variables and returns a metavariable context $\gamma$, a typing context with $n$ free variables containing metavariables in $\gamma$, and a list of constraints on metavariables $\gamma$.
-We define a similar function for typing inference on expressions, this time also returning a type $\tau$ of type $\ttype{\gamma}$ for the expression:
+Typing inference takes a process with $n$ free variables and returns a metavariable context $\gamma$, a typing context with $n$ free variables containing metavariables in $\gamma$, and a list of constraints on metavariables $\gamma$.
+We define a similar function for typing inference on expressions, this time also returning a type $\tau$ of type $\ttype{\gamma}$:
 \begin{flalign*}
 & \func{inferProc} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} && \\
 & \func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} \times \ttype{\gamma} &&
 \end{flalign*}
-These functions are total: if processes and expressions are untypable, their constraints will be unsolvable.
-Let us provide a couple of examples illustrating how this function is defined:
+These functions are total: if a process or expression is untypable its constraints will be unsolvable.
 
+Let us provide a couple of examples illustrating how this function is defined:
 For the expression $\sfst~e$ we
-\begin{enumerate*}[label=\arabic*)]
+\begin{enumerate*}[label=\textcolor{gray}{\arabic*)}]
   \item recursively infer $e$ resulting in $\gamma,\Gamma,Cs,\tau$;
   \item add two fresh type metavariables $?t$ and $?s$ to $\gamma$;
   \item add constraints $\eqconstr{\tau}{\tprod~?t~?s}$ and $\sumconstr{?s}{?s}{?s}$ to $Cs$; and
@@ -331,7 +329,7 @@ For the expression $\sfst~e$ we
 \end{enumerate*}
 
 For the expression $\scase~e~p~q$ we
-  \begin{enumerate*}[label=\arabic*)]
+  \begin{enumerate*}[label=\textcolor{gray}{\arabic*)}]
   \item infer $p$ resulting in $\theta_p, (\Theta_p, s) , Cs_p$;
   \item infer $q$ resulting in $\theta_q, (\Theta_q, t) , Cs_q$;
   \item infer $e$ resulting in $\delta_e, \Delta_e, Cs_e, \tau$;
@@ -343,16 +341,16 @@ For the expression $\scase~e~p~q$ we
 
 \paragraph{Inference Soundness}
 
-Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, every substitution \(\sigma\) that makes the constraints $cs$ hold makes $p$ typable under $\subst{\sigma}{\Gamma}$.
+Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, every substitution \(\sigma\) that makes the constraints $cs$ hold makes $\tProc{(\subst{\sigma}{\Gamma})}{p}$ hold.
 
 \paragraph{Inference Completeness}
 
-Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, for every context \(\Delta\) that makes $p$ typable, there exists a substitution \(\sigma\) that solves the constraints $cs$ such that $\Delta$ is a specialisation of $\subst{\sigma}{\Gamma}$ (we define $\Delta ~ \func{\subseteq} ~ \Gamma$ as $\exists \delta. ~ \exists \sigma . ~ \tEq{\Delta}{(\subst{\sigma}{\Gamma})}$).
+Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, for every context \(\Delta\) that makes $p$ typable, there exists a substitution \(\sigma\) that solves the constraints $cs$ such that $\Delta$ is a specialisation of $(\subst{\sigma}{\Gamma})$ --- a specialisation $\Delta ~ \func{\subseteq} ~ (\subst{\sigma}{\Gamma})$ is defined as $\exists \sigma_f . ~ \tEq{\Delta}{(\subst{\sigma_f}{(\subst{\sigma}{\Gamma})})}$.
 
 \subsection{Constraint Resolution}
 \label{constraint-resolution}
 
-Solving a set of constraints results in a set of substitutions and an unsolved set of simplified constraints where those substitutions have already been performed.
+Solving a set of constraints results in a set of substitutions and an unsolved set of simplified constraints where those substitutions have already been applied.
 The constraints that have been left unsolved do not have a most general solution.
 Constraints of the form $\eqconstr{x}{y}$ are solved by unification using a kinded version of McBride's unification by structural recursion \cite{McBride03}, and have either no solution, or a most general solution that results in a substitution.
 Constraints of the form $\sumconstr{x}{y}{z}$ are solved recursively until a base case is reached, at which point they either have a most general solution or they do not.
@@ -372,7 +370,7 @@ Given $\tEq{\func{solve}~cs_1}{(\sigma, cs_2)}$, any substitution \(\sigma_f\) t
 
 \paragraph{Resolution Progress}
 
-Given $\func{solve}~cs_1 \equiv (\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ we return has a most general unifier, where a most general unifier for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
+Given $\func{solve}~cs_1 \equiv (\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ has a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
