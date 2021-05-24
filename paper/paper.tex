@@ -7,7 +7,7 @@
 
 % Typing rules
 \usepackage{mathpartir}
-\mprset {sep=0.5em} % Horizontal space between premises
+\mprset {sep=0.6em} % Horizontal space between premises
 
 \newcommand{\picalc}{$\pi$-calculus}
 \newcommand{\Picalc}{$\pi$-Calculus}
@@ -131,9 +131,6 @@ With this work, we aim to:
 We start defining an untyped but well scoped \picalc{} using type-level de Bruijn indices \cite{deBruijn72} and embed a small expression language that handles composite sum and product types.
 On top, we define a standard type system with linear and shared types using context-splits \autoref{type-system}.
 We then provide an overview of how typing inference works, define constraint collection (\autoref{constraint-collection}) and constraint resolution (\autoref{constraint-resolution}), and state that both phases are sound and complete with regards to the type system defined in \autoref{type-system}.
-
-We have proven that constraint collection is sound and (adapting McBride's work \cite{McBride03} to deal with intrinsically kinded terms) that the resolution of equality constraints is sound too.
-The remaining proofs are still in progress.
 (A note on notation: variables are black, \textcolor{blue}{types are blue}, \textcolor{olive}{constructors are green}, \textcolor{gray}{functions are gray}, and we are sorry this is not a poem.)
 
 
@@ -219,7 +216,6 @@ We can finally define our typing judgment for variables, expressions and process
 \begin{mathpar}
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
 %             { \tVar{\Gamma}{i}{t} }
-
   \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
              { \tVar{\Gamma,t}{\fzero}{t} }
              % \rulename{zero}
@@ -227,14 +223,12 @@ We can finally define our typing judgment for variables, expressions and process
   \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{\gamma} \\ \tun{s} }
              { \tVar{\Gamma,s}{\fsuc~i}{t} }
              % \rulename{suc}
-
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
 %             { \tExpr{\Gamma}{e}{t} }
 
   \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} }
              % \rulename{var}
-
-  \inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} }
+  %\inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} }
              % \rulename{unit}
 
   \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} {\tExpr{\Gamma}{\sfst~e}{t}}
@@ -242,11 +236,9 @@ We can finally define our typing judgment for variables, expressions and process
 
   \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}}
              % \rulename{inl}
-
-  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
-             { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
+  %\inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
+  %           { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
              %\rulename{pair}
-
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
 %             { \tProc{\Gamma}{p} }
 
@@ -259,10 +251,9 @@ We can finally define our typing judgment for variables, expressions and process
 
   \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
              %\rulename{new}
-
-  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
-             { \tProc{\Gamma}{\srecv~e~p} }
-             %\rulename{recv}
+  %\inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
+  %           { \tProc{\Gamma}{\srecv~e~p} }
+  %           %\rulename{recv}
 
   \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tsum~s~t} \\ \tProc{\Theta,s}{p} \\ \tProc{\Theta,t}{q} }
              { \tProc{\Gamma}{\scase~e~p~q} }
@@ -373,6 +364,12 @@ Given $\tEq{\func{solve}~cs_1}{(\sigma, cs_2)}$, any substitution \(\sigma_f\) t
 \paragraph{Resolution Progress}
 
 Given $\func{solve}~cs_1 \equiv (\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ has a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
+
+\section{Discussion}
+
+We have outlined a procedure for decidable type checking and inference of a \picalc{} with linear and shared types.
+Constraint collection and constraint resolution are kept separate, and their metatheory allows for deferred constraints.
+We have proven in Agda that constraint collection and the resolution of equality constraints is sound, the remaining proofs are still in progress.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
