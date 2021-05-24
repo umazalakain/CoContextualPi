@@ -2,6 +2,7 @@
 
 \usepackage[inline]{enumitem}
 
+\theoremstyle{definition}\newtheorem{mytheorem}{Theorem}[section]
 \renewcommand*{\sectionautorefname}{\S\!\!\,}
 \renewcommand*{\subsectionautorefname}{\S\!\!\,}
 
@@ -332,13 +333,13 @@ For the expression $\scase~e~p~q$ we
   \item return $\Gamma$ as the inferred context.
 \end{enumerate*}
 
-\paragraph{Inference Soundness}
+\begin{mytheorem}[Inference Soundness]\label{inference-soundness}
+Given $\func{infer}~p$ returns $\gamma , \Gamma , cs$, every substitution \(\sigma\) that makes the constraints $cs$ hold makes $\tProc{(\subst{\sigma}{\Gamma})}{p}$ hold.
+\end{mytheorem}
 
-Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, every substitution \(\sigma\) that makes the constraints $cs$ hold makes $\tProc{(\subst{\sigma}{\Gamma})}{p}$ hold.
-
-\paragraph{Inference Completeness}
-
-Given $\tEq{\func{infer}~p}{\gamma , \Gamma , cs}$, for every context \(\Delta\) that makes $p$ typable, there exists a substitution \(\sigma\) that solves the constraints $cs$ such that $\Delta$ is a specialisation of $(\subst{\sigma}{\Gamma})$ --- a specialisation $\Delta ~ \func{\subseteq} ~ (\subst{\sigma}{\Gamma})$ is defined as $\exists \sigma_f . ~ \tEq{\Delta}{(\subst{\sigma_f}{(\subst{\sigma}{\Gamma})})}$.
+\begin{mytheorem}[Inference Completeness]\label{inference-completeness}
+Given $\func{infer}~p$ returns $\gamma , \Gamma , cs$, for every context \(\Delta\) that makes $p$ typable, there exists a substitution \(\sigma\) that solves the constraints $cs$ such that $\Delta$ is a specialisation of $(\subst{\sigma}{\Gamma})$ --- a specialisation $\Delta ~ \func{\subseteq} ~ (\subst{\sigma}{\Gamma})$ is defined as $\exists \sigma_f . ~ \tEq{\Delta}{(\subst{\sigma_f}{(\subst{\sigma}{\Gamma})})}$.
+\end{mytheorem}
 
 \subsection{Constraint Resolution}
 \label{constraint-resolution}
@@ -353,23 +354,23 @@ $$
 \end{aligned}
 $$
 
-\paragraph{Resolution Soundness}
+\begin{mytheorem}[Resolution Soundness]\label{resolution-soundness}
+Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, every substitution $\sigma_f$ that satisfies the simplified constraints ($\interpr{\subst{\sigma_f}{cs_2}}$) satisfies the original constraints after substitutions are applied ($\interpr{\subst{\sigma_f}{(\subst{\sigma}{cs_1})}}$).
+\end{mytheorem}
 
-Given $\tEq{\func{solve}~cs_1}{(\sigma, cs_2)}$, every substitution $\sigma_f$ that satisfies the simplified constraints ($\interpr{\subst{\sigma_f}{cs_2}}$) satisfies the original constraints after substitutions are applied ($\interpr{\subst{\sigma_f}{(\subst{\sigma}{cs_1})}}$).
+\begin{mytheorem}[Resolution Completeness]\label{resolution-completeness}
+Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold ($\interpr{\subst{\sigma_f}{cs_1}}$) can be decomposed into $\sigma$ followed by a certain \(\sigma_g\) ($\sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma$) that makes the returned constraints \(cs_2\) hold ($\interpr{\subst{\sigma_g}{cs_2}}$).
+\end{mytheorem}
 
-\paragraph{Resolution Completeness}
-
-Given $\tEq{\func{solve}~cs_1}{(\sigma, cs_2)}$, any substitution \(\sigma_f\) that makes the original constraints \(cs_1\) hold ($\interpr{\subst{\sigma_f}{cs_1}}$) can be decomposed into $\sigma$ followed by a certain \(\sigma_g\) ($\sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma$) that makes the returned constraints \(cs_2\) hold ($\interpr{\subst{\sigma_g}{cs_2}}$).
-
-\paragraph{Resolution Progress}
-
-Given $\func{solve}~cs_1 \equiv (\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ has a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
+\begin{mytheorem}[Resolution Progress]\label{resolution-progress}
+Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ has a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
+\end{mytheorem}
 
 \section{Discussion}
 
 We have outlined a procedure for decidable type checking and inference of a \picalc{} with linear and shared types.
 Constraint collection and constraint resolution are kept separate, and their metatheory allows for deferred constraints.
-We have proven in Agda that constraint collection and the resolution of equality constraints is sound, the remaining proofs are still in progress.
+We have proved in Agda the soundness of constraint collection \autoref{inference-soundness} and of equality constraint resolution \autoref{resolution-soundness}, the remaining proofs are still in progress.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
