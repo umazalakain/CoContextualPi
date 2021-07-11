@@ -75,7 +75,7 @@
 \newcommand{\srecv}{\constr{recv}}
 \newcommand{\ssend}{\constr{send}}
 \newcommand{\scase}{\constr{case}}
-\newcommand{\srec}{\constr{rec}}
+\newcommand{\srec}{\constr{rep}}
 
 \newcommand{\typeExpr}[3]{#1 ~ \vdash{} ~ #2 ~ : ~ #3}
 \newcommand{\typeProc}[2]{#1 ~ \vdash{} ~ #2}
@@ -111,6 +111,24 @@
 
 \begin{document}
 \maketitle
+
+\begin{frame}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \sitem co-contextual typing inference
+    \sitem \picalc{}
+      \begin{itemize}
+        \sitem typing inference
+        \sitem metatheory
+      \end{itemize}
+    \sitem linear \picalc{}
+    \begin{itemize}
+      \sitem typing inference
+      \sitem metatheory
+    \end{itemize}
+    \sitem summary; questions
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
 \[
@@ -152,10 +170,9 @@
 \end{frame}
 
 \begin{frame}{co-contextual typing inference}
-TODO: draw simple diagram
 \begin{itemize}
 \setlength\itemsep{1em}
-\sitem building a context of ``requirements''
+\sitem builds a context of ``requirements''
 \sitem bottom up, merge on joins
 \sitem parallelizable
 \end{itemize}
@@ -248,8 +265,8 @@ TODO: draw simple diagram
 
 \begin{frame}{simply typed \picalc{}: typing inference}
 \begin{flalign*}
-\func{inferExpr} &: \sExpr{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m} \times \ttype{m}) \\
 \func{inferProc} &: \sProc{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m}) \\
+\func{inferExpr} &: \sExpr{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m} \times \ttype{m}) \\
 \end{flalign*}
 \end{frame}
 
@@ -269,7 +286,7 @@ TODO: draw simple diagram
 \func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \to \tProc{\Gamma}{p} \\
 \end{flalign*}
 \end{mytheorem}
-\begin{mytheorem}[Inference Soundness]
+\begin{mytheorem}[Inference Completeness]
 \begin{flalign*}
 \tProc{\Delta}{p} \to \exists m. \exists \Gamma. \func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \times \Delta \subseteq \Gamma
 \end{flalign*}
@@ -278,7 +295,7 @@ TODO: draw simple diagram
 
 \begin{frame}
 \begin{center}
-now with linearity
+linear and shared \picalc{}
 \end{center}
 \end{frame}
 
@@ -422,7 +439,7 @@ now with linearity
 \begin{frame}{linear \picalc{}: typing inference}
 \begin{itemize}
 \sitem constraints are of the form $\eqconstr{S}{T}$ or $\sumconstr{S}{T}{R}$
-\sitem they have \emph{not} a most general solution
+\sitem they have \emph{not necessarily} a most general solution
 \sitem constraints solving must be delayed
 \sitem soundness and completeness modulo solving
 \end{itemize}
@@ -437,6 +454,9 @@ now with linearity
 
 \begin{frame}{linear \picalc{}: metatheory}
 \begin{flalign*}
+\subst{\sigma}{\eqconstr{S}{T}} & \triangleq \eqconstr{\subst{\sigma}{S}}{\subst{\sigma}{T}} \\
+\subst{\sigma}{\sumconstr{S}{T}{R}} & \triangleq \sumconstr{\subst{\sigma}{S}}{\subst{\sigma}{T}}{\subst{\sigma}{R}} \\
+\hfill\\
 \interpr{\eqconstr{S}{T}} & \triangleq S \tEq{} T \\
 \interpr{\sumconstr{S}{T}{R}} & \triangleq \tSplit{S}{T}{R} \\
 \end{flalign*}
@@ -444,8 +464,8 @@ now with linearity
 
 \begin{frame}{linear \picalc{}: metatheory}
 \begin{mytheorem}[Inference Soundness]\label{inference-soundness}
-Any substitution that solves the constraints makes the process typeable.
-Inference does not uncer-constrain the problem. 
+Any substitution that solves the constraints makes the process typable.
+Inference does not under-constrain the problem. 
 \[
 \begin{aligned}[c]
 & \func{infer}~p \tEq{} \gamma , \Gamma , cs \\
@@ -458,7 +478,7 @@ Inference does not uncer-constrain the problem.
 
 \begin{frame}{linear \picalc{}: metatheory}
 \begin{mytheorem}[Inference Completeness]\label{inference-completeness}
-If a process is typeable then there exists a substitution that solves the constraints.
+If a process is typable then there exists a substitution that solves the constraints.
 Inference does not over-constrain the problem.
 \[
 \begin{aligned}[c]
@@ -511,7 +531,7 @@ Solutions are the most general.
 Only those constraints without a most general solution are left unsolved.
 \[
 \begin{aligned}[c]
-& \type{mgs} ~ c \triangleq \exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma)) \\
+& \type{mgs} ~ c \triangleq \exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \to (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma)) \\
 & \func{solve}~cs_1 \tEq{} \sigma , cs_2 \to ~ \forall c \in cs_2 \to \neg ~ \type{mgs} ~ c
 \end{aligned}
 \]
