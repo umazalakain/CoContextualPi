@@ -1,0 +1,539 @@
+\documentclass[dvipsnames]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsbsy}
+\usepackage{mathbbol}
+\usepackage{mathtools}
+
+% For a wider page
+\usepackage{changepage}
+
+% Diagrams
+\usepackage{tikz}
+
+% Mathbb doesn't support digits
+\usepackage{bbm}
+
+% Example code
+\usepackage{listings}
+
+% Inference rules
+\usepackage{mathpartir}
+
+% Multiple columns
+\usepackage{multicol}
+
+% Square bullet points
+\newcommand{\sitem}{\item[\raisebox{.45ex}{\rule{.6ex}{.6ex}}]}
+
+\theoremstyle{definition}\newtheorem{mytheorem}{Theorem}[section]
+
+% Abbreviations
+\newcommand{\lambdacalc}{$\lambda$-calculus}
+\newcommand{\picalc}{$\pi$-calculus}
+\newcommand{\Picalc}{$\pi$-Calculus}
+\newcommand{\rulename}[1]{{\tiny \textsc{(#1)}}}
+\newcommand{\constr}[1]{\textcolor{olive}{\mathtt{#1}}}
+\newcommand{\func}[1]{\textcolor{gray}{\mathtt{#1}}}
+\newcommand{\type}[1]{\textcolor{blue}{\mathtt{#1}}}
+
+% Syntax types
+\newcommand{\Fin}[1]{\type{Fin}~#1}
+\newcommand{\Maybe}[1]{\type{Maybe}~#1}
+\newcommand{\fzero}{\constr{zero}}
+\newcommand{\fsuc}{\constr{suc}}
+\newcommand{\sExpr}[1]{\type{Expr}~#1}
+\newcommand{\sProc}[1]{\type{Proc}~#1}
+\newcommand{\tvar}[2]{#1 ~\type{\ni_t}~ #2}
+\newcommand{\tkind}[2]{#1 ~\type{\vdash_t}~ #2}
+\newcommand{\ttype}[1]{\type{Type}~#1}
+\newcommand{\tusage}[1]{\type{Usage}~#1}
+\newcommand{\tCtx}[2]{\type{Ctx}_{#1}~#2}
+\newcommand{\tSplit}[3]{#1~\type{=}~#2~\type{\uplus}~#3}
+\newcommand{\tEq}[2]{#1~\type{\equiv}~#2}
+\newcommand{\tun}[1]{\type{un}~#1}
+\newcommand{\tVar}[3]{#1 ~ \type{\ni} ~ #2 ~ \type{:} ~ #3}
+\newcommand{\tExpr}[3]{#1 ~ \type{\vdash} ~ #2 ~ \type{:} ~ #3}
+\newcommand{\tProc}[2]{#1 ~ \type{\vdash} ~ #2}
+\newcommand{\tConstr}[1]{\type{Constr} ~ #1}
+\newcommand{\tConstrs}[1]{\type{[Constr} ~ #1 ~ \type{]}}
+
+% Syntax constructors
+\newcommand{\sunit}{\constr{unit}}
+\newcommand{\svar}{\constr{var}}
+\newcommand{\sfst}{\constr{fst}}
+\newcommand{\ssnd}{\constr{snd}}
+\newcommand{\sinl}{\constr{inl}}
+\newcommand{\sinr}{\constr{inr}}
+\newcommand{\spair}{\constr{pair}}
+\newcommand{\send}{\constr{end}}
+\newcommand{\snew}{\constr{new}}
+\newcommand{\scomp}{\constr{comp}}
+\newcommand{\srecv}{\constr{recv}}
+\newcommand{\ssend}{\constr{send}}
+\newcommand{\scase}{\constr{case}}
+\newcommand{\srec}{\constr{rec}}
+
+\newcommand{\typeExpr}[3]{#1 ~ \vdash{} ~ #2 ~ : ~ #3}
+\newcommand{\typeProc}[2]{#1 ~ \vdash{} ~ #2}
+
+% Kind constructors
+\newcommand{\ktype}{\constr{ty}}
+\newcommand{\kusage}{\constr{us}}
+
+% Typing judgment constructors
+\newcommand{\tmvar}{\constr{mvar}}
+\newcommand{\tchan}{\constr{chan}}
+\newcommand{\tunit}{\constr{unit}}
+\newcommand{\tsum}{\constr{sum}}
+\newcommand{\tprod}{\constr{prod}}
+\newcommand{\tzero}{\constr{0\cdot}}
+\newcommand{\tone}{\constr{1\cdot}}
+\newcommand{\tomega}{\constr{\omega\cdot}}
+
+\newcommand{\subst}[2]{#1 ~ \func{\triangleleft} ~ #2}
+\newcommand{\tSubst}[2]{\type{Subst}~#1~#2}
+\newcommand{\interpr}[1]{\func{[\![} #1 \func{]\!]}}
+
+% Constraint constructors
+\newcommand{\eqconstr}[2]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{]}}
+\newcommand{\sumconstr}[3]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{+} ~ #3 ~ \constr{]}}
+
+\usetheme[sectionpage=none,numbering=none]{metropolis}
+\setbeamertemplate{title separator}{}
+\title{Co-Contextual Typing Inference \\ for the Linear \(\pi\)-Calculus \\ in Agda}
+\author{\textbf{Uma Zalakain} \ and \  Ornela Dardha \\ University of Glasgow}
+\date{}
+
+
+\begin{document}
+\maketitle
+
+\begin{frame}
+\[
+\begin{gathered}
+\text{type checking: top down} \\
+\typeExpr{\Gamma \downarrow}{e \downarrow}{t \downarrow} \\
+\typeProc{\Gamma \downarrow}{p \downarrow}
+\end{gathered}
+\]
+\end{frame}
+
+\begin{frame}
+\[
+\begin{gathered}
+\text{type checking with leftovers: left to right} \\
+\typeExpr{\Gamma \downarrow}{e \downarrow}{t \downarrow} ~ \triangleright{} ~ \Delta \uparrow \\
+\typeProc{\Gamma \downarrow}{p \downarrow} ~ \triangleright{} ~ \Delta \uparrow 
+\end{gathered}
+\]
+\end{frame}
+
+\begin{frame}
+\[
+\begin{gathered}
+\text{type inference: bidirectional} \\
+\typeExpr{\Gamma \downarrow}{e \downarrow}{t \uparrow}
+\end{gathered}
+\]
+\end{frame}
+
+\begin{frame}
+\[
+\begin{gathered}
+\text{typing inference: bottom up} \\
+\typeExpr{\Gamma \uparrow}{e \downarrow}{t \uparrow}\\
+\typeProc{\Gamma \uparrow}{p \downarrow}
+\end{gathered}
+\]
+\end{frame}
+
+\begin{frame}{co-contextual typing inference}
+TODO: draw simple diagram
+\begin{itemize}
+\setlength\itemsep{1em}
+\sitem building a context of ``requirements''
+\sitem bottom up, merge on joins
+\sitem parallelizable
+\end{itemize}
+\end{frame}
+
+\begin{frame}{the \picalc{}}
+\[
+\begin{aligned}[c]
+  e_n ~ f_n  :=
+  &~ \sunit \\
+  |&~ \svar~i_n \\
+  |&~ \spair~e_n~f_n \\
+  |&~ \sfst~e_n ~|~  \ssnd~e_n \\
+  |&~ \sinl~e_n ~|~  \sinr~e_n
+\end{aligned}
+\begin{aligned}[c]
+  p_n ~ q_n  :=
+  &~ \send ~|~  \srec~p_n ~|~ \snew~p_{1+n} \\
+  |&~ \srecv~e_n~p_{1+n} \\
+  |&~ \ssend~e_n~f_n~p_n \\
+  |&~ \scomp~p_n~q_n \\
+  |&~ \scase~e_n~p_{1+n}~q_{1+n} \\
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{types for the simply typed \picalc{}, with metavariables}
+\[
+\begin{aligned}[c]
+  t_n ~ s_n  :=
+  &~ \tmvar~i_n ~|~ \tunit \\
+  |&~ \tprod~t_n~s_n ~|~ \tsum~t_n~s_n \\
+  |&~ \tchan~t_n
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: variables}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{m} \\ i : \Fin{n} \\ t : \ttype{m} }
+             { \tVar{\Gamma}{i}{t} }
+             \rulename{VarForm}
+
+  \inferrule { \Gamma : \tCtx{n}{m} \\ t : \ttype{m} }
+             { \tVar{\Gamma,t}{\fzero}{t} }
+
+  \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{m} }
+             { \tVar{\Gamma,s}{\fsuc~i}{t} }
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: expressions}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{m} \\ e : \sExpr{n} \\ t : \ttype{m}}
+             { \tExpr{\Gamma}{e}{t} }
+             \rulename{ExprForm}
+
+  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} }
+
+  \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s}} {\tExpr{\Gamma}{\sfst~e}{t}}
+
+  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}}
+
+  \inferrule { \tExpr{\Gamma}{e}{s} \\ \tExpr{\Gamma}{f}{t} }
+             { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: processes}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{m} \\ p : \sProc{n}}
+             { \tProc{\Gamma}{p} }
+             \rulename{ProcForm}
+             \\
+
+  \inferrule { } { \tProc{\Gamma}{\send} }
+
+  \inferrule { \tProc{\Gamma}{p} }
+             { \tProc{\Gamma}{\srec~p} }
+
+  \inferrule { t : \ttype{m} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
+
+  \inferrule { \tExpr{\Gamma}{e}{\tchan~t} \\ \tProc{\Gamma,t}{p} }
+             { \tProc{\Gamma}{\srecv~e~p} }
+
+  \inferrule { \tExpr{\Gamma}{e}{\tsum~s~t} \\ \tProc{\Gamma,s}{p} \\ \tProc{\Gamma,t}{q} }
+             { \tProc{\Gamma}{\scase~e~p~q} }
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: typing inference}
+\begin{flalign*}
+\func{inferExpr} &: \sExpr{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m} \times \ttype{m}) \\
+\func{inferProc} &: \sProc{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m}) \\
+\end{flalign*}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: typing inference}
+\begin{itemize}
+\sitem constraints are of the form $\eqconstr{S}{T}$
+\sitem they have a most general solution
+\sitem solved by first order unification
+\sitem results in substitutions that are applied to the context
+\sitem in context merges types are pointwise constrained for equality
+\end{itemize}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: metatheory}
+\begin{mytheorem}[Inference Soundness]
+\begin{flalign*}
+\func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \to \tProc{\Gamma}{p} \\
+\end{flalign*}
+\end{mytheorem}
+\begin{mytheorem}[Inference Soundness]
+\begin{flalign*}
+\tProc{\Delta}{p} \to \exists m. \exists \Gamma. \func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \times \Delta \subseteq \Gamma
+\end{flalign*}
+\end{mytheorem}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+now with linearity
+\end{center}
+\end{frame}
+
+\begin{frame}{types for the linear \picalc{}, with metavariables}
+
+\begin{mathpar}
+  \inferrule {m : \tvar{\gamma}{k}} {\tmvar~m : \tkind{\gamma}{k}}
+
+  \inferrule {
+    i : \tkind{\gamma}{\kusage} \\
+    o : \tkind{\gamma}{\kusage} \\
+    t : \tkind{\gamma}{\ktype}}
+  {\tchan~i~o~t : \tkind{\gamma}{\ktype}}
+
+  \inferrule { }
+  {\tunit : \tkind{\gamma}{\ktype}}
+
+  \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
+  {\tprod~s~t : \tkind{\gamma}{\ktype}}
+
+  \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
+  {\tsum~s~t : \tkind{\gamma}{\ktype}}
+
+  \inferrule { } {\tzero ~|~ \tone ~|~ \tomega : \tkind{\gamma}{\kusage}}
+\end{mathpar}
+\begin{itemize}
+\sitem metavariables for both types and usage annotations
+\sitem $\gamma$ acts as a kinding context for type and usage metavariables
+\end{itemize}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: context splits}
+\begin{mathpar}
+  \inferrule { } {\tSplit{x}{x}{\tzero}}
+
+  \inferrule { } {\tSplit{x}{\tzero}{x}}
+
+  \inferrule { } {\tSplit{\tomega}{x}{y}}
+  \\
+
+  \tun{s} \triangleq \tSplit{s}{s}{s}
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: variables}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
+             { \tVar{\Gamma}{i}{t} }
+             \rulename{VarForm}
+
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
+             { \tVar{\Gamma,t}{\fzero}{t} }
+
+  \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{\gamma} \\ \tun{s} }
+             { \tVar{\Gamma,s}{\fsuc~i}{t} }
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: expressions}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
+             { \tExpr{\Gamma}{e}{t} }
+             \rulename{ExprForm}
+
+  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} }
+             % \rulename{var}
+
+  \inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} }
+             % \rulename{unit}
+
+  \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} {\tExpr{\Gamma}{\sfst~e}{t}}
+             % \rulename{fst}
+
+  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}}
+             % \rulename{inl}
+
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
+             { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
+             %\rulename{pair}
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: processes}
+\begin{mathpar}
+  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
+             { \tProc{\Gamma}{p} }
+             \rulename{ProcForm}
+
+  \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} }
+             %\rulename{end}
+
+  \inferrule { \tProc{\Gamma}{p} \\ \tun{\Gamma} }
+             { \tProc{\Gamma}{\srec~p} }
+             %\rulename{rec}
+
+  \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
+             %\rulename{new}
+
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
+             { \tProc{\Gamma}{\srecv~e~p} }
+  %           %\rulename{recv}
+
+  \mprset{flushleft}
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\\\
+               \tSplit{\Theta}{\Xi}{\Omega} \\
+               \tExpr{\Delta}{e}{\tchan~\tzero~\tone~t} \\
+               \tExpr{\Xi}{f}{t} \\
+               \tProc{\Omega}{p} }
+             { \tProc{\Gamma}{\ssend~e~f~p} }
+\end{mathpar}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: typing inference}
+\[
+\begin{aligned}[c]
+& \ssend~a~\sunit~(\ssend~x~a~\send) \\
+\end{aligned}
+\]
+
+\[
+\begin{aligned}[c]
+& \eqconstr{a}{\tchan~?a_i~?a_o~\tunit} \\
+& \eqconstr{x}{\tchan~?x_i~?x_o~?a_p} \\
+& \eqconstr{?a_p}{\tchan~?a_{i_{payld}}~?a_{o_{payld}}~\tunit}~~~ \\
+\end{aligned}
+\begin{aligned}[c]
+& \sumconstr{?a_i}{?a_{i_{payld}}}{?a_{i_{left}}} \\
+& \sumconstr{?a_o}{\tone}{?a_{o_{inter}}} \\
+& \sumconstr{?a_{o_{inter}}}{?a_{o_{payld}}}{?a_{o_{left}}} \\
+& \sumconstr{?x_o}{\tone}{?x_{o_{left}}} \\
+\end{aligned}
+\]
+
+\[
+\begin{aligned}[c]
+& \tun{?a_{i_{left}}} \hspace{1em} \tun{?a_{o_{left}}} \hspace{1em} \tun{?x_{i}} \hspace{1em} \tun{?x_{o_{left}}}
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{linear \picalc{}: typing inference}
+\begin{itemize}
+\sitem constraints are of the form $\eqconstr{S}{T}$ or $\sumconstr{S}{T}{R}$
+\sitem they have \emph{not} a most general solution
+\sitem constraints solving must be delayed
+\sitem soundness and completeness modulo solving
+\end{itemize}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: typing inference}
+\begin{flalign*}
+& \func{inferProc} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} && \\
+& \func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} \times \ttype{\gamma} &&
+\end{flalign*}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: metatheory}
+\begin{flalign*}
+\interpr{\eqconstr{S}{T}} & \triangleq S \tEq{} T \\
+\interpr{\sumconstr{S}{T}{R}} & \triangleq \tSplit{S}{T}{R} \\
+\end{flalign*}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: metatheory}
+\begin{mytheorem}[Inference Soundness]\label{inference-soundness}
+Any substitution that solves the constraints makes the process typeable.
+Inference does not uncer-constrain the problem. 
+\[
+\begin{aligned}[c]
+& \func{infer}~p \tEq{} \gamma , \Gamma , cs \\
+\to ~ & \forall \sigma . \interpr{\subst{\sigma}{cs}} \\
+\to ~ & \tProc{\subst{\sigma}{\Gamma}}{p}
+\end{aligned}
+\]
+\end{mytheorem}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: metatheory}
+\begin{mytheorem}[Inference Completeness]\label{inference-completeness}
+If a process is typeable then there exists a substitution that solves the constraints.
+Inference does not over-constrain the problem.
+\[
+\begin{aligned}[c]
+& \func{infer}~p \tEq{} \gamma , \Gamma , cs \\
+\to ~ & \forall \Delta . \tProc{\Delta}{p} \\
+\to ~ & \exists \sigma . \interpr{\subst{\sigma}{cs}} \\
+\times ~ & \Delta \tEq{} \subst{\sigma}{\Gamma}
+\end{aligned}
+\]
+\end{mytheorem}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: constraint resolution}
+\[
+\begin{aligned}[c]
+\func{solve} &: \tConstrs{\gamma} \to \tSubst{\gamma}{\delta} \times \tConstrs{\delta}
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{linear \picalc{}: constraint resolution: metatheory}
+\begin{mytheorem}[Resolution Soundness]\label{resolution-soundness}
+Solutions preserve the meaning of constraints.
+\end{mytheorem}
+\[
+\begin{aligned}[c]
+& \func{solve}~cs_1 \tEq{} \sigma , cs_2 \\
+\to ~ & \forall \sigma_f . \interpr{\subst{\sigma_f}{cs_2}} \\
+\to ~ & \interpr{\subst{\sigma_f}{(\subst{\sigma}{cs_1})}}
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{linear \picalc{}: constraint resolution: metatheory}
+\begin{mytheorem}[Resolution Completeness]\label{resolution-completeness}
+Solutions are the most general.
+\[
+\begin{aligned}[c]
+& \func{solve}~cs_1 \tEq{} \sigma , cs_2 \\
+\to ~ & \forall \sigma_f . \interpr{\subst{\sigma_f}{cs_1}} \\
+\to ~ & \exists \sigma_g . \sigma_f \tEq{} \sigma_g \cdot \sigma \\
+\times ~ & \interpr{\subst{\sigma_g}{cs_2}}
+\end{aligned}
+\]
+\end{mytheorem}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: constraint resolution: metatheory}
+\begin{mytheorem}[Resolution Progress]\label{resolution-progress}
+Only those constraints without a most general solution are left unsolved.
+\[
+\begin{aligned}[c]
+& \type{mgs} ~ c \triangleq \exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma)) \\
+& \func{solve}~cs_1 \tEq{} \sigma , cs_2 \to ~ \forall c \in cs_2 \to \neg ~ \type{mgs} ~ c
+\end{aligned}
+\]
+\end{mytheorem}
+
+(Closed processes can have their unsolved metavariables safely instantiated.)
+\end{frame}
+
+\begin{frame}{summary}
+\begin{itemize}
+\setlength\itemsep{1em}
+\sitem typing inference for the \picalc{} with linear and shared types
+\sitem without a MGS, constraint resolution must be deferred
+\sitem inference needs to talk about constraints instead of solutions
+\sitem can bounded usage annotations overcome this? 
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \centering
+  \Huge{thank you!} \\
+  \Huge{questions?}
+\end{frame}
+
+\end{document}
