@@ -264,6 +264,13 @@
 \end{frame}
 
 \begin{frame}{simply typed \picalc{}: typing inference}
+  \centering
+  \cite{ErdwegBKKM15} \\
+  \hfill \\
+  \cite{McBride03}
+\end{frame}
+
+\begin{frame}{simply typed \picalc{}: typing inference}
 \begin{flalign*}
 \func{inferProc} &: \sProc{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m}) \\
 \func{inferExpr} &: \sExpr{n} \to ~ \Maybe (\exists m. ~ \tCtx{n}{m} \times \ttype{m}) \\
@@ -283,8 +290,11 @@
 \begin{frame}{simply typed \picalc{}: metatheory}
 \begin{mytheorem}[Inference Soundness]
 \begin{flalign*}
-\func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \to \tProc{\Gamma}{p} \\
+\func{inferProc}~p \tEq \constr{just}~(m,\Gamma) \to \tProc{\Gamma}{p}
 \end{flalign*}
+\begin{proof}
+  Fully mechanised in \url{github.com/umazalakain/cocontextualpi}
+\end{proof}
 \end{mytheorem}
 \begin{mytheorem}[Inference Completeness]
 \begin{flalign*}
@@ -409,6 +419,11 @@ linear and shared \picalc{}
 \end{frame}
 
 \begin{frame}{linear \picalc{}: typing inference}
+  \centering
+  \cite{Padovani15}
+\end{frame}
+
+\begin{frame}{linear \picalc{}: typing inference}
 \[
 \begin{aligned}[c]
 & \ssend~a~\sunit~(\ssend~x~a~\send) \\
@@ -473,6 +488,9 @@ Inference does not under-constrain the problem.
 \to ~ & \tProc{\subst{\sigma}{\Gamma}}{p}
 \end{aligned}
 \]
+
+\textbf{Proof.} \\
+Almost mechanised in \url{github.com/umazalakain/cocontextualpi/tree/linearity}
 \end{mytheorem}
 \end{frame}
 
@@ -537,16 +555,25 @@ Only those constraints without a most general solution are left unsolved.
 \]
 \end{mytheorem}
 
-(Closed processes can have their unsolved metavariables safely instantiated.)
+Closed processes can have their unsolved metavariables safely instantiated.
 \end{frame}
 
 \begin{frame}{summary}
 \begin{itemize}
 \setlength\itemsep{1em}
 \sitem typing inference for the \picalc{} with linear and shared types
-\sitem without a MGS, constraint resolution must be deferred
-\sitem inference needs to talk about constraints instead of solutions
-\sitem can bounded usage annotations overcome this? 
+\sitem usage polymorphism: cannot commit to a solution
+\sitem constraint resolution must be (partially) deferred
+\sitem metatheory abstracted over constraint resolution
+\sitem closed processes can safely be instantiated 
+\end{itemize}
+\end{frame}
+
+\begin{frame}{future work}
+\begin{itemize}
+\setlength\itemsep{1em}
+\sitem set of constraints $\to$ tree of constraints following syntax
+\sitem can we use bounds to apply more constraints eagerly and keep counting?
 \end{itemize}
 \end{frame}
 
@@ -556,4 +583,6 @@ Only those constraints without a most general solution are left unsolved.
   \Huge{questions?}
 \end{frame}
 
+\bibliographystyle{apalike}
+\bibliography{talk}
 \end{document}
