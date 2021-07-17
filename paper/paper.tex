@@ -69,7 +69,7 @@
 
 \newcommand{\subst}[2]{#1 ~ \func{\triangleleft} ~ #2}
 \newcommand{\tSubst}[2]{\type{Subst}~#1~#2}
-\newcommand{\interpr}[1]{\func{[\![} #1 \func{]\!]}}
+\newcommand{\interpr}[1]{\func{\llbracket} #1 \func{\rrbracket}}
 
 % Constraint constructors
 \newcommand{\eqconstr}[2]{\constr{[} ~ #1 ~ \constr{\stackrel{c}{=}} ~ #2 ~ \constr{]}}
@@ -118,7 +118,7 @@ To type check a \picalc{} process with shared and linear types we must assign a 
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
 To reduce the burden on the user, we follow the latter approach: we traverse processes bottom-up while keeping a typing context with \emph{metavariables} (\emph{holes}) and collecting typing constraints on metavariables, in line with co-contextual typing \cite{ErdwegBKKM15}.
 Keeping a strictly bottom-up information flow has the additional advantage of making typing inference easily parallelisable.
-Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without one must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
+Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
 Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$, assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint.
 
 To the best of our knowledge, this problem has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
@@ -171,8 +171,7 @@ Variable references $i_n$ are of type $\Fin{n}$, expressions $e_n$ and $f_n$ are
 Both types and usage annotations contain metavariables.
 We use a common set of metavariables for both --- this makes their handling uniform.
 A context of kinds \(\gamma\) keeps track of whether a metavariable is of type kind $\ktype$ or usage annotation kind $\kusage$.
-We refer to a metavariable of kind \(k\) in a kinding context \(\gamma\) as $\tvar{\gamma}{k}$.
-We can now define usage annotations and types in one go (we define $\tzero$, $\tone$ $\tomega$ at once for brevity):
+We define $\tvar{\gamma}{k}$ as the set of variables of kind \(k\) in a kinding context \(\gamma\), and $\tkind{\gamma}{k}$ as the set of types \(\ktype\) and usage annotations \(\kusage\) (we omit unit and sum types and define $\tzero$, $\tone$, $\tomega$ at once for brevity):
 \begin{mathpar}
   \inferrule {m : \tvar{\gamma}{k}} {\tmvar~m : \tkind{\gamma}{k}}
 
@@ -182,14 +181,8 @@ We can now define usage annotations and types in one go (we define $\tzero$, $\t
     t : \tkind{\gamma}{\ktype}}
   {\tchan~i~o~t : \tkind{\gamma}{\ktype}}
 
-  \inferrule { }
-  {\tunit : \tkind{\gamma}{\ktype}}
-
   \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
   {\tprod~s~t : \tkind{\gamma}{\ktype}}
-
-  \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
-  {\tsum~s~t : \tkind{\gamma}{\ktype}}
 
   \inferrule { } {\tzero ~|~ \tone ~|~ \tomega : \tkind{\gamma}{\kusage}}
 \end{mathpar}
@@ -199,14 +192,15 @@ We henceforth use $\ttype{\gamma}$ for $\tkind{\gamma}{\ktype}$ and $\tusage{\ga
 \label{types}
 A context $\Gamma$ of type $\tCtx{n}{\gamma}$ is a list of $\ttype{\gamma}$ of size $n$.
 We define context splits $\tSplit{\Gamma}{\Delta}{\Theta}$ pointwise on types.
-Splits on types are defined recursively on usage annotations --- note that only the usage annotations at the top of a channel are split, not those within its payload.
-Splits on usage annotations are defined as follows:
+Splits on types are defined pointwise on usage annotations (but are not applied to a channel's payload) and splits on usage annotations are defined as follows:
 \begin{mathpar}
   \inferrule { } {\tSplit{x}{x}{\tzero}}
 
   \inferrule { } {\tSplit{x}{\tzero}{x}}
 
   \inferrule { } {\tSplit{\tomega}{x}{y}}
+
+  \inferrule {\tSplit{i_x}{i_y}{i_z} \\ \tSplit{o_x}{o_y}{o_z}} {\tSplit{\tchan~i_x~o_x~t}{\tchan~i_y~o_y~t}{\tchan~i_z~o_z~t}}
 \end{mathpar}
 Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
 
@@ -294,8 +288,8 @@ We use $\tConstrs{\gamma}$ to refer to lists of constraints of type $\tConstr{\g
 
 \paragraph{Substitution}
 
-A kind-preserving substitution $\tSubst{\gamma}{\delta}$ maps usage annotations and type metavariables in $\gamma$ to usage annotations and types in $\delta$, that is, $\forall k \to \tvar{\gamma}{k} \to \tkind{\delta}{k}$.
-The function $\subst{\sigma}{t}$ of type $\tSubst{\gamma}{\delta} \to (\forall k \to \tkind{\gamma}{k} \to \tkind{\delta}{k})$ performs the substitution by replacing all the metavariables in $t$ with their corresponding terms in $\sigma$.
+A kind-preserving substitution $\tSubst{\gamma}{\delta}$ maps usage annotations and type metavariables in $\gamma$ to usage annotations and types in $\delta$, that is, $\forall \{k\} \to \tvar{\gamma}{k} \to \tkind{\delta}{k}$ for an implicit $k$.
+The function $\subst{\sigma}{t}$ of type $\tSubst{\gamma}{\delta} \to (\forall \{k\} \to \tkind{\gamma}{k} \to \tkind{\delta}{k})$ performs the substitution by replacing all the metavariables in $t$ with their corresponding terms in $\sigma$.
 Substitutions on constraints are defined pointwise on their arguments.
 
 
@@ -306,7 +300,7 @@ We use a $\interpr{\_}$ function to interpret constraints $\eqconstr{S}{T}$ and 
 \paragraph{Inference}
 
 Typing inference takes a process with $n$ free variables and returns a metavariable context $\gamma$, a typing context with $n$ free variables containing metavariables in $\gamma$, and a list of constraints on metavariables $\gamma$.
-We define a similar function for typing inference on expressions, this time also returning a type $\tau$ of type $\ttype{\gamma}$:
+We define a similar function for typing inference on expressions, this time also returning a type in $\ttype{\gamma}$:
 \begin{flalign*}
 & \func{inferProc} : \sProc{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} && \\
 & \func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} \times \ttype{\gamma} &&
@@ -324,9 +318,9 @@ For the expression $\sfst~e$ we
 
 For the expression $\scase~e~p~q$ we
   \begin{enumerate*}[label=\textcolor{gray}{\arabic*)}]
-  \item infer $p$ resulting in $\theta_p, (\Theta_p, s) , Cs_p$;
-  \item infer $q$ resulting in $\theta_q, (\Theta_q, t) , Cs_q$;
-  \item infer $e$ resulting in $\delta_e, \Delta_e, Cs_e, \tau$;
+  \item infer $p$ resulting in $(\theta_p, \Theta_p, s , Cs_p)$;
+  \item infer $q$ resulting in $(\theta_q, \Theta_q, t , Cs_q)$;
+  \item infer $e$ resulting in $(\delta_e, \Delta_e, Cs_e, \tau)$;
   \item create a new metavariable context $\gamma$ and a new typing context $\Gamma$ where every type is a fresh metavariable in $\gamma$;
   \item take the union of the metavariables in $\gamma$, $\theta_p$, $\theta_q$ and $\delta_e$;
   \item take the union of the constraints in $Cs_p$, $Cs_q$ and $Cs_e$, and create new constraints $\eqconstr{\Theta_p}{\Theta_q}$, $\sumconstr{\Gamma}{\Delta_e}{\Theta_p}$, and $\eqconstr{\tau}{\tsum~s~t}$; and
