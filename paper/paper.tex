@@ -59,7 +59,7 @@
 
 % Typing judgment constructors
 \newcommand{\tmvar}{\constr{mvar}}
-\newcommand{\tchan}{\constr{chan}}
+\newcommand{\tchan}[3]{\constr{chan}_{\constr{[}#1\constr{,}#2\constr{]}} ~ #3}
 \newcommand{\tunit}{\constr{unit}}
 \newcommand{\tsum}{\constr{sum}}
 \newcommand{\tprod}{\constr{prod}}
@@ -177,7 +177,7 @@ We henceforth abbreviate $\tkind{\gamma}{\ktype}$ as $\ttype{\gamma}$ and $\tkin
 \[
 \begin{aligned}[c]
   i ~ o :=& ~ \tmvar_{\kusage} ~ m ~|~ \tzero ~|~ \tone ~|~ \tomega \\
-  s ~ t :=& ~ \tmvar_{\ktype} ~ m ~|~ \tunit ~|~ \tchan ~ i ~ o ~ t ~|~ \tprod ~ s ~ t ~|~ \tsum ~ s ~ t
+  s ~ t :=& ~ \tmvar_{\ktype} ~ m ~|~ \tunit ~|~ \tchan{i}{o}{t} ~|~ \tprod ~ s ~ t ~|~ \tsum ~ s ~ t
 \end{aligned}
 \]
 
@@ -193,7 +193,7 @@ Splits on types are defined pointwise on usage annotations (but are not applied 
 
   \inferrule { } {\tSplit{\tomega}{x}{y}}
 
-  \inferrule {\tSplit{i_x}{i_y}{i_z} \\ \tSplit{o_x}{o_y}{o_z}} {\tSplit{\tchan~i_x~o_x~t}{\tchan~i_y~o_y~t}{\tchan~i_z~o_z~t}}
+  \inferrule {\tSplit{i_x}{i_y}{i_z} \\ \tSplit{o_x}{o_y}{o_z}} {\tSplit{\tchan{i_x}{o_x}{t}}{\tchan{i_y}{o_y}{t}}{\tchan{i_z}{o_z}{t}}}
 \end{mathpar}
 Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
 
@@ -202,50 +202,33 @@ Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\t
 We can now define our typing judgment for variables ($\tVar{\Gamma}{i}{t}$, where variable $i$ under context $\Gamma$ is of type $t$), expressions ($\tExpr{\Gamma}{e}{t}$, where expression $e$ under context $\Gamma$ is well typed with type $t$) and processes ($\tProc{\Gamma}{p}$, where process $p$ is well typed under context $\Gamma$). Some cases are omitted for brevity.
 
 \begin{mathpar}
-%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
-%             { \tVar{\Gamma}{i}{t} }
   \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
              { \tVar{\Gamma,t}{\fzero}{t} }
-             % \rulename{zero}
 
   \inferrule { \tVar{\Gamma}{i}{t} \\ s : \ttype{\gamma} \\ \tun{s} }
              { \tVar{\Gamma,s}{\fsuc~i}{t} }
-             % \rulename{suc}
-%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ e : \sExpr{n} \\ t : \ttype{\gamma}}
-%             { \tExpr{\Gamma}{e}{t} }
-
-  \inferrule { \tVar{\Gamma}{i}{t} } { \tExpr{\Gamma}{\svar~i}{t} }
-             % \rulename{var}
-  %\inferrule { \tun{\Gamma} } { \tExpr{\Gamma}{\sunit}{\tunit} }
-             % \rulename{unit}
 
   \inferrule { \tExpr{\Gamma}{e}{\tprod~t~s} \\ \tun{s}} {\tExpr{\Gamma}{\sfst~e}{t}}
-             % \rulename{fst}
 
-  \inferrule { \tExpr{\Gamma}{e}{t} } { \tExpr{\Gamma}{\sinl~e}{\tsum~t~s}}
-             % \rulename{inl}
-  %\inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
-  %           { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
-             %\rulename{pair}
-%  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ p : \sProc{n}}
-%             { \tProc{\Gamma}{p} }
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{s} \\ \tExpr{\Theta}{f}{t} }
+             { \tExpr{\Gamma}{\spair~e~f}{\tprod~s~t}}
 
   \inferrule { \tun{\Gamma} } { \tProc{\Gamma}{\send} }
-             %\rulename{end}
-
-  \inferrule { \tProc{\Gamma}{p} \\ \tun{\Gamma} }
-             { \tProc{\Gamma}{\srec~p} }
-             %\rulename{rec}
 
   \inferrule { t : \ttype{\gamma} \\ \tProc{\Gamma , t}{p} } { \tProc{\Gamma}{\snew~p} }
-             %\rulename{new}
-  %\inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan~\tone~\tzero~t} \\ \tProc{\Theta,t}{p} }
-  %           { \tProc{\Gamma}{\srecv~e~p} }
-  %           %\rulename{recv}
 
-  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tsum~s~t} \\ \tProc{\Theta,s}{p} \\ \tProc{\Theta,t}{q} }
-             { \tProc{\Gamma}{\scase~e~p~q} }
-             %\rulename{case}
+  \inferrule { \tSplit{\Gamma}{\Delta}{\Theta} \\ \tExpr{\Delta}{e}{\tchan{\tone}{\tzero}{t}} \\ \tProc{\Theta,t}{p} }
+             { \tProc{\Gamma}{\srecv~e~p} }
+
+  \mprset{flushleft}
+  \inferrule {
+    \tSplit{\Gamma}{\Delta}{\Theta} \\\\
+    \tSplit{\Theta}{\Psi}{\Xi} \\
+    \tExpr{\Delta}{f}{\tchan{\tzero}{\tone}{t}} \\
+    \tExpr{\Psi}{e}{t} \\
+    \tProc{\Xi}{p}
+  }
+  { \tProc{\Gamma}{\ssend~f~e~p} }
 \end{mathpar}
 
      
