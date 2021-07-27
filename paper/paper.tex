@@ -114,8 +114,11 @@
 
 The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing, boiling it down to the transmission of data over communication channels --- where channels too are sent as payload.
 The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
-This restriction ensures communication safety, and the absence of race conditions.
-We generalise to a \picalc{} with linear and shared types, where the input and output capabilities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unlimited use).
+This restriction ensures communication safety and the absence of race conditions.
+We generalise to a \picalc{} with linear and shared types, where the input and output capabilities of a channel are either usage $0$ (cannot be used to transmit), usage $1$ (must be used exactly once), or usage $\omega$ (unlimited use).
+\footnote{
+  Why support a usage $0$ instead of removing the variable from context? it allows the syntax to be independent from the type system, and it allows for a \emph{polarised} treatment of channels, where the same channel variable is used for both input and output.
+  }
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
@@ -198,13 +201,14 @@ Splits on types are defined pointwise on usage annotations (but are not applied 
 
   \inferrule {\tSplit{i_x}{i_y}{i_z} \\ \tSplit{o_x}{o_y}{o_z}} {\tSplit{\tchan{i_x}{o_x}{t}}{\tchan{i_y}{o_y}{t}}{\tchan{i_z}{o_z}{t}}}
 \end{mathpar}
+Note that e.g., both $\tSplit{\tzero}{\tzero}{\tzero}$ and $\tSplit{\tomega}{\tzero}{\tzero}$ are possible: we use context splits to allow the type system to lose granularity.
 Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\tun{\Gamma}$ if it can be split into itself: $\tSplit{\Gamma}{\Gamma}{\Gamma}$ (respectively $\tun{x}$ and $\tun{t}$ for usage annotations $x$ and types $t$).
 
 \paragraph{Typing Judgments}
 \label{typing-judgments}
 We can now define our typing judgment for variables ($\tVar{\Gamma}{i}{t}$, where variable $i$ under context $\Gamma$ is of type $t$), expressions ($\tExpr{\Gamma}{e}{t}$, where expression $e$ under context $\Gamma$ is well typed with type $t$) and processes ($\tProc{\Gamma}{p}$, where process $p$ is well typed under context $\Gamma$).
-Note that, although fully linear tensor products ($\tprod ~ s ~ t$) cannot directly be eliminated through their projections ($\sfst$ rule), context splits enable their usage annotations to be distributed before projection.
-(Some cases are omitted for brevity.)
+Note that, although fully linear tensor products ($\tprod ~ s ~ t$) cannot directly be eliminated through their projections ($\sfst$ rule), context splits enable their usage annotations to be distributed beforehand.
+Similarly, while it may appear that $\srecv$ and $\ssend$ only work on channels with usages ($\tone$, $\tzero$) and vice versa, the context splits in these rules allow usages to lose granularity (and thus accept e.g., ($\tomega$, $\tomega$)).
 
 \begin{mathpar}
   \inferrule { \Gamma : \tCtx{n}{\gamma} \\ \tun{\Gamma} \\ t : \ttype{\gamma} }
