@@ -169,24 +169,17 @@ Variable references $i_{1+n}$ are of type $\Fin{(1 + n)}$ with constructors $\fz
 
 
 Both types and usage annotations contain metavariables.
-We use a common set of metavariables for both --- this makes their handling uniform.
+To make their handling uniform we use a common set of metavariables for both.
 A context of kinds \(\gamma\) keeps track of whether a metavariable is of type kind $\ktype$ or usage annotation kind $\kusage$.
-We define $\tvar{\gamma}{k}$ as the set of variables of kind \(k\) in a kinding context \(\gamma\), and $\tkind{\gamma}{k}$ as the set of types \(\ktype\) and usage annotations \(\kusage\) (we omit unit and sum types and define $\tzero$, $\tone$, $\tomega$ at once for brevity):
-\begin{mathpar}
-  \inferrule {m : \tvar{\gamma}{k}} {\tmvar~m : \tkind{\gamma}{k}}
-
-  \inferrule {
-    i : \tkind{\gamma}{\kusage} \\
-    o : \tkind{\gamma}{\kusage} \\
-    t : \tkind{\gamma}{\ktype}}
-  {\tchan~i~o~t : \tkind{\gamma}{\ktype}}
-
-  \inferrule {s : \tkind{\gamma}{\ktype} \\ t : \tkind{\gamma}{\ktype} }
-  {\tprod~s~t : \tkind{\gamma}{\ktype}}
-
-  \inferrule { } {\tzero ~|~ \tone ~|~ \tomega : \tkind{\gamma}{\kusage}}
-\end{mathpar}
-We henceforth use $\ttype{\gamma}$ for $\tkind{\gamma}{\ktype}$ and $\tusage{\gamma}$ for $\tkind{\gamma}{\kusage}$.
+Variable references $m$ are of type $\tvar{\gamma}{k}$: the set of variables of kind \(k\) in a kinding context \(\gamma\).
+Usage annotations $i$ and $o$ are of type $\tkind{\gamma}{\kusage}$, and types $s$ and $t$ of type $\tkind{\gamma}{\ktype}$.
+We henceforth abbreviate $\tkind{\gamma}{\ktype}$ as $\ttype{\gamma}$ and $\tkind{\gamma}{\kusage}$ as $\tusage{\gamma}$.
+\[
+\begin{aligned}[c]
+  i ~ o :=& ~ \tmvar_{\kusage} ~ m ~|~ \tzero ~|~ \tone ~|~ \tomega \\
+  s ~ t :=& ~ \tmvar_{\ktype} ~ m ~|~ \tunit ~|~ \tchan ~ i ~ o ~ t ~|~ \tprod ~ s ~ t ~|~ \tsum ~ s ~ t
+\end{aligned}
+\]
 
 \paragraph{Context Splits}
 \label{types}
