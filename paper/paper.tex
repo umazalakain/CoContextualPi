@@ -111,8 +111,8 @@
 
 The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing, boiling it down to the transmission of data over communication channels --- where channels too are sent as payload.
 The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
-This restriction ensures communication privacy, communication safety, and the absence of race conditions.
-We generalise to a \picalc{} with linear and shared types, where the input and output multiplicities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unlimited use).
+This restriction ensures communication safety, and the absence of race conditions.
+We generalise to a \picalc{} with linear and shared types, where the input and output capabilities of a channel are either $0$ (cannot be used to transmit), $1$ (must be used exactly once), or $\omega$ (unlimited use).
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
 To do so we can either ask the user for type annotations \cite{ZalakainD21}, or we can infer types by looking at how channels are used.
@@ -144,7 +144,7 @@ The only non-standard feature is that types allow for \emph{metavariables} withi
 \paragraph{Syntax}
 
 We define a standard syntax for the \picalc{} using type-level de Bruijn indices.
-Variable references $i_n$ are of type $\Fin{n}$, expressions $e_n$ and $f_n$ are of type $\sExpr{n}$, processes $p_n$ and $q_n$ are of type $\sProc{n}$.
+Variable references $i_{1+n}$ are of type $\Fin{(1 + n)}$ with constructors $\fzero$ and $\fsuc~i_n$, expressions $e_n$ and $f_n$ are of type $\sExpr{n}$, processes $p_n$ and $q_n$ are of type $\sProc{n}$.
 \[
 \begin{aligned}[c]
   e_n ~ f_n  :=
@@ -206,7 +206,7 @@ Following \cite{Padovani15}, a context $\Gamma$ is unrestricted (non-linear) $\t
 
 \paragraph{Typing Judgments}
 \label{typing-judgments}
-We can finally define our typing judgment for variables, expressions and processes (some cases are omitted for brevity).
+We can now define our typing judgment for variables ($\tVar{\Gamma}{i}{t}$, where variable $i$ under context $\Gamma$ is of type $t$), expressions ($\tExpr{\Gamma}{e}{t}$, where expression $e$ under context $\Gamma$ is well typed with type $t$) and processes ($\tProc{\Gamma}{p}$, where process $p$ is well typed under context $\Gamma$). Some cases are omitted for brevity.
 
 \begin{mathpar}
 %  \inferrule { \Gamma : \tCtx{n}{\gamma} \\ i : \Fin{n} \\ t : \ttype{\gamma} }
@@ -262,7 +262,7 @@ Co-contextual typing inference traverses processes bottom-up keeping a typing co
 This makes inference subproblems independent and thus easily parallelisable.
 In the shared \picalc{}, inference constraints always have a most general unifier, in the shared \emph{and} linear \picalc{} however they do not.
 Consider the open process $\ssend~a~\sunit~(\ssend~x~a~\send)$ where $x$ and $a$ are free: we partly use $a$ to send, then send $a$ away over $x$ and terminate.
-When the process terminates, all multiplicities must be unrestricted, but we cannot decide whether to instantiate with $\tzero$ or $\tomega$.
+When the process terminates, all usage annotations must be unrestricted, but we cannot decide whether to instantiate with $\tzero$ or $\tomega$.
 Similarly, we ignore \emph{how much} of $a$ we are sending away over $x$: that depends on what the receiving process expects.
 Nonetheless, we do have to keep track of the fact that $a$ has been used once to send.
 

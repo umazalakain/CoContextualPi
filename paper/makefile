@@ -9,7 +9,7 @@ $(REPORT).pdf: $(DEPS)
 	cp $(BIBDEPS) $(TMP) && cd $(TMP) && bibtex $(REPORT).aux
 	pdflatex -output-directory $(TMP) $(REPORT).tex
 	pdflatex -output-directory $(TMP) $(REPORT).tex
-	mv $(TMP)/$(REPORT).pdf .
+	if [ ! -f $(REPORT).pdf ]; then ln -s $(TMP)/$(REPORT).pdf $(REPORT).pdf; fi
 
 clean:
 	rm -r $(TMP)
