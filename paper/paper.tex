@@ -267,23 +267,19 @@ These functions are total: if a process or expression is untypable its constrain
 & \func{inferExpr} : \sExpr{n} \to ~ \exists \gamma. ~ \tCtx{n}{\gamma} \times \tConstrs{\gamma} \times \ttype{\gamma} &&
 \end{flalign*}
 
-The reason we return unsolved constraints is that unlike in the shared \picalc{} where constraints have always a most general unifier, in the shared \emph{and} linear \picalc{} metavariables can be under-constrained. 
+Unlike in the shared \picalc{}, where constraints have always a most general unifier, in the shared \emph{and} linear \picalc{} metavariables can be under-constrained.
 Consider the open process $\ssend~a~\sunit~(\ssend~x~a~\send)$ where $x$ and $a$ are free: we partly use $a$ to send, then send whatever is left of $a$ away over $x$ and terminate.
 Let us step through a working example of how inference runs:
 \begin{enumerate}
   \item on $\send$, inference creates a fresh typing context $\Gamma_0$ with metavariables for $x$ and $a$, and constraints demanding that these should be unrestricted.
-  \item on $\ssend ~ x ~ a$, inference creates fresh typing contexts $\Gamma_4$, $\Gamma_3$, $\Gamma_2$ and $\Gamma_1$, a fresh metavariable $?t$, and constraints $\sumconstr{\Gamma_4}{\Gamma_3}{\Gamma_2}$, $\varconstr{\Gamma_3}{x}{\tchan{\tzero}{\tone}{?t}}$, $\sumconstr{\Gamma_2}{\Gamma_1}{\Gamma_0}$, and $\varconstr{\Gamma_1}{a}{?t}$.
-  \item on $\ssend ~ a ~ \sunit$, inference creates fresh typing contexts $\Gamma_6$, and $\Gamma_5$, and constraints $\sumconstr{\Gamma_6}{\Gamma_5}{\Gamma_4}$, and $\varconstr{\Gamma_5}{a}{\tchan{\tzero}{\tone}{\tunit}}$.
+  \item on $\ssend ~ x ~ a$, inference creates fresh typing contexts $\Gamma_4$, $\Gamma_3$, $\Gamma_2$ and $\Gamma_1$, a fresh metavariable $?t$, and constraints $\sumconstr{\Gamma_4}{\Gamma_3}{\Gamma_2}$, $\varconstr{\Gamma_3}{x}{\tchan{\tzero}{\tone}{?t}}$, $\sumconstr{\Gamma_2}{\Gamma_1}{\Gamma_0}$, and $\varconstr{\Gamma_1}{a}{?t}$, following the typing rules.
+  \item on $\ssend ~ a ~ \sunit$, inference creates fresh typing contexts $\Gamma_6$ and $\Gamma_5$, and constraints $\sumconstr{\Gamma_6}{\Gamma_5}{\Gamma_4}$, and $\varconstr{\Gamma_5}{a}{\tchan{\tzero}{\tone}{\tunit}}$.
 \end{enumerate}
 
-Two reasons prevent us from finding most general solutions:
-On one hand, \emph{unrestrictedness} constraints are satisfied by either usage annotations $\tzero$ and $\tomega$.
-This can be overcome by a subtyping relation on usage annotations.
-Additionally, \emph{usage polymorphism} on $?t$ makes inference under-constrained.
-The overall constraint on the metavariable for $a$ is that it can be split into $\tchan{\tzero}{\tone}{\tunit}$, into $?t$, and into some unrestricted leftovers.
-While $?t$ can certainly be eagerly substituted by a channel type $\tchan{?i}{?o}{\tunit}$ for some $?i$ and $?o$, we cannot determine what $?i$ and $?o$ must be.
-The problem here is that we must keep track of the partial usage of $a$ while at the same time allowing the type of $a$ to be polymorphic in the type of $x$.
-As a result, we must keep these under-constrained constraints around (potentially until the process is closed and they can be solved by instantiation) and state meta-theoretical properties abstracting over constraint satisfaction.
+Here \emph{usage polymorphism} on $?t$ makes inference under-constrained and prevents us from finding a most general solution:
+the constraints on $a$'s type demand that it must be split into $\tchan{\tzero}{\tone}{\tunit}$, into $?t$, and into some unrestricted leftovers, and while $?t$ can eagerly be substituted by a channel type $\tchan{?i}{?o}{\tunit}$ for some $?i$ and $?o$, it is polymorphic in its usage annotations $?i$ and $?o$.
+In other words, we must keep track of the partial usage of $a$ while allowing $x$ to be polymorphic in the type of $a$.
+As a result, these partial usage constraints must be kept around (potentially until the process is closed and they can be solved by instantiation) and meta-theoretical properties must therefore be abstracted over constraint satisfaction.
 
 \begin{mytheorem}[Inference Soundness]\label{inference-soundness}
 Given $\func{infer}~p$ returns $(\gamma , \Gamma , cs)$, every substitution \(\sigma\) satisfying $\interpr{\subst{\sigma}{cs}}$ makes $\tProc{(\subst{\sigma}{\Gamma})}{p}$ hold.
