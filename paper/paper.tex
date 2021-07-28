@@ -113,11 +113,10 @@
 \section{Introduction}\label{introduction}
 
 The \picalc{} \cite{MilnerPW92a,Milner99} models concurrent processing, boiling it down to the transmission of data over communication channels --- where channels too are sent as payload.
-The linear \picalc{} \cite{KobayashiPT96} introduces a type system that ensures that every channel is used \emph{exactly} once.
-This restriction ensures communication safety and the absence of race conditions.
-We generalise to a \picalc{} with linear and shared types, where the input and output capabilities of a channel are either usage $0$ (cannot be used to transmit), usage $1$ (must be used exactly once), or usage $\omega$ (unlimited use).
+Type systems for the \picalc{} that support linearity \cite{KobayashiPT96} ensure that linear channels are used \emph{exactly once}, which guarantees communication safety and the absence of race conditions.
+We follow this line of work with a \picalc{} with linear and shared types, where the input and output capabilities of a channel are either usage $0$ (cannot be used to transmit), usage $1$ (must be used exactly once), or usage $\omega$ (unlimited use).
 \footnote{
-  Why support a usage $0$ instead of removing the variable from context? it allows the syntax to be independent from the type system, and it allows for a \emph{polarised} treatment of channels, where the same channel variable is used for both input and output.
+  Why support a usage $0$ instead of removing the variable from context altogether? it allows the syntax to be independent from the type system, and moreover for a \emph{polarised} treatment of channels, where the same channel variable is used for both input and output.
   }
 
 To type check a \picalc{} process with shared and linear types we must assign a type to every communication channel created within the process.
@@ -127,8 +126,7 @@ Keeping a strictly bottom-up information flow has the additional advantage of ma
 Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
 Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$, assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint.
 
-To the best of our knowledge, this problem has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
-However, his work does not appear to be mechanised, and metatheoretical properties like soundness and completeness are only informally addressed.
+To the best of our knowledge, this problem has not yet been mechanised, and has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
 With this work, we aim to:
 \begin{itemize}
   \item State and prove clear soundness and completeness theorems for both constraint collection and constraint resolution (\autoref{inference}).
