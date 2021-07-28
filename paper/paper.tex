@@ -126,6 +126,9 @@ Keeping a strictly bottom-up information flow has the additional advantage of ma
 Constraints with a most general solution are solved into substitutions and applied to the typing context, constraints without must be kept around for later: applying them as substitutions risks over-constraining the problem down the line.
 Armed with a typing inference algorithm that for a process $P$ infers the most general typing context $\Gamma$ and some typing constraints, type checking that $\Delta \vdash P$ for some $\Delta$ amounts to emitting the extra constraint $\Gamma = \Delta$, assuming the metavariables in $\Gamma$ and $\Delta$ are disjoint.
 
+Decidable (and certified) type checking procedures have been provided for a range of linear type systems \cite{Allais15,Allais17,OrchardLE19,Brady21}.
+These type systems however do not deal with types containing usage annotations nested within: in our case, a channel with \emph{payload} type ``channel with input usage 0'' differs in type from a channel with payload type ``channel with input usage 1''.
+As a result, we must roll typing inference and linearity inference into one, and deal with the type polymorphism that arises as a result of usage polymorphism.
 To the best of our knowledge, this problem has not yet been mechanised, and has only been treated in Padovani's work on type reconstruction for composite types \cite{Padovani15}.
 With this work, we aim to:
 \begin{itemize}
