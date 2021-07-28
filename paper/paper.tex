@@ -316,7 +316,7 @@ Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, any substitution \(\sigma_f\
 \end{mytheorem}
 
 \begin{mytheorem}[Resolution Progress]\label{resolution-progress}
-Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ has a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
+Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ have a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
 \end{mytheorem}
 
 \section{Discussion}
