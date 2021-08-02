@@ -82,6 +82,7 @@
 [Co-Contextual Typing Inference for the Linear \Picalc{} in Agda]
 {Co-Contextual Typing Inference \\ for the Linear \Picalc{} in Agda}
 \subtitle{(Extended Abstract)}
+\acmConference[TyDe]{Type-Driven Development}{2021}{International Conference on Functional Programming}
 
 \author{Uma Zalakain}
 \affiliation{University of Glasgow}
@@ -319,7 +320,7 @@ Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, any substitution \(\sigma_f\
 Given $\func{solve}~cs_1$ returns $(\sigma, cs_2)$, to keep us from returning the original constraints as output (which is both sound and complete), we postulate that none of the constraints $c \in cs_2$ have a most general solution, where a most general solution for a constraint $c$ is defined as $\exists \sigma. ~ \interpr{\subst{\sigma}{c}} \times (\forall \sigma_f . ~ \interpr{\subst{\sigma_f}{c}} \times (\exists \sigma_g. ~ \sigma_f ~ \type{\doteq} ~ \sigma_g \cdot \sigma))$.
 \end{mytheorem}
 
-\section{Discussion}
+\section{Conclusion}
 
 We have outlined a procedure for decidable type checking and inference of a \picalc{} with linear and shared types.
 Constraint collection and constraint resolution are kept separate, and their metatheory allows for deferred constraints.
